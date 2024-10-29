@@ -6,8 +6,9 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from apps import home
-# Importing your app variable from app.py so we can use it
 from app import app
+from apps.patients import patient_management 
+from apps.patients import patient_management_profile
 
 app.layout = html.Div(
     [
@@ -50,7 +51,7 @@ def displaypage (pathname):
             returnlayout = 'settlefinancialtransactions'
         
         elif pathname == '/patientrecords':
-            returnlayout = 'patientrecordspage'
+            returnlayout = patient_management.layout
 
         else:
             returnlayout = 'error404'
