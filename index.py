@@ -7,8 +7,8 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from apps import home
 from app import app
-from apps.patients import patient_management 
-from apps.patients import patient_management_profile
+from apps.patient_manager import patient_manager 
+from apps.patient_manager import patient_manager_profile
 
 app.layout = html.Div(
     [
@@ -50,8 +50,11 @@ def displaypage (pathname):
         elif pathname == '/settlefinancialtransactions':
             returnlayout = 'settlefinancialtransactions'
         
-        elif pathname == '/patientrecords':
-            returnlayout = patient_management.layout
+        elif pathname == '/patient_manager':
+            returnlayout = patient_manager.layout
+        
+        elif pathname == '/patient_manager/patient_manager_profile':
+            returnlayout = patient_manager_profile.layout
 
         else:
             returnlayout = 'error404'

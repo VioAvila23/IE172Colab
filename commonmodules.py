@@ -29,7 +29,7 @@ navbar = dbc.Navbar(
                         dbc.NavItem(dbc.NavLink("Home",href="/home", active="exact",)),
                         dbc.NavItem(dbc.NavLink("Appointment", href="/appointment",active="exact")),
                         dbc.NavItem(dbc.NavLink("Settle Financial Transactions", href="/settlefinancialtransactions",active="exact")),
-                        dbc.NavItem(dbc.NavLink("Patient Records", href="/patientrecords",active="exact"))
+                        dbc.NavItem(dbc.NavLink("Patient Profile Manager ", href="/patient_manager",active="exact"))
                         
                     ],
                     pills=True,
