@@ -6,7 +6,7 @@ from dbconnect import getDataFromDB
 from app import app
 
 layout = dbc.Container([
-    # Row for search bar and Add New Patient button
+    # Row fsor search bar and Add New Patient button
     dbc.Row(
         [
             dbc.Col(
