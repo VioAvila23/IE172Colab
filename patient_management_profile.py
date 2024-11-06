@@ -2,7 +2,6 @@ from urllib.parse import parse_qs, urlparse
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-
 from dash import Input, Output, State
 from app import app
 from dbconnect import getDataFromDB, modifyDB
@@ -258,15 +257,16 @@ layout = html.Div(
                     className="mb-3"
                 ),
                 
+                # Mark as Deleted (only visible in edit mode)
                 html.Div(
                     [
                         dbc.Checklist(
                             id='patient_profile_delete',
-                            options=[dict(value=1, label="Mark as Deleted")],
+                            options=[{'value': 1, 'label': "Mark as Deleted"}],
                             value=[]
                         )
                     ],
-                    id='movieprofile_deletediv'
+                    id='delete_checkbox_div'
                 ),
 
                 dbc.Button(
@@ -292,7 +292,7 @@ layout = html.Div(
 @app.callback(
     [
         Output('patientprofile_id', 'data'),
-        Output('patient_profile_delete', 'className')
+        Output('delete_checkbox_div', 'style')
     ],
     [Input('url', 'pathname')],
     [State('url', 'search')]
@@ -304,79 +304,11 @@ def patient_profile_load(pathname, urlsearch):
 
         if create_mode == 'add':
             patientprofile_id = 0
+            delete_checkbox_style = {'display': 'none'}  # Hide checkbox in add mode
         else:
             patientprofile_id = int(parse_qs(parsed.query).get('id', [0])[0])
+            delete_checkbox_style = {'display': 'block'}  # Show checkbox in edit mode
         
-        return [patientprofile_id, '']
+        return [patientprofile_id, delete_checkbox_style]
     else:
         raise PreventUpdate
-
-@app.callback(
-    [Output('submit_alert', 'color'),
-     Output('submit_alert', 'children'),
-     Output('submit_alert', 'is_open')],
-    [Input('submit_button', 'n_clicks')],
-    [State('last_name', 'value'),
-     State('first_name', 'value'),
-     State('middle_name', 'value'),
-     State('birthdate', 'value'),
-     State('age', 'value'),
-     State('sex', 'value'),
-     State('cellphone_number', 'value'),
-     State('email_address', 'value'),
-     State('street', 'value'),
-     State('barangay', 'value'),
-     State('city', 'value'),
-     State('postal_code', 'value'),
-     State('url', 'search'),
-     State('patientprofile_id', 'data')]
-)
-def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                email_address, street, barangay, city, postal_code, urlsearch, patientprofile_id):
-    
-    ctx = dash.callback_context
-    if not ctx.triggered or not n_clicks:
-        raise PreventUpdate
-
-    parsed = urlparse(urlsearch)
-    create_mode = parse_qs(parsed.query).get('mode', [''])[0]
-
-    # Check for missing values in the required fields
-    if not all([last_name, first_name, birthdate, age, sex, cellphone_number, email_address, street, barangay, city, postal_code]):
-        return 'danger', 'Please fill in all required fields.', True
-
-    # SQL to insert or update the database
-    if create_mode == 'add':
-        sql = """INSERT INTO patient (patient_last_m, patient_first_m, patient_middle_m, patient_bd, age,
-                sex, patient_cn, patient_email, street, barangay, city, postal_code, account_creation_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE);"""
-        
-        values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                  email_address, street, barangay, city, postal_code]
-    
-    elif create_mode == 'edit':
-        sql = """UPDATE patient
-                SET patient_last_m = %s,
-                    patient_first_m = %s,
-                    patient_middle_m = %s,
-                    patient_bd = %s,
-                    age = %s,
-                    sex = %s,
-                    patient_cn = %s,
-                    patient_email = %s,
-                    street = %s,
-                    barangay = %s,
-                    city = %s,
-                    postal_code = %s
-                WHERE patient_id = %s;"""
-        
-        values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                  email_address, street, barangay, city, postal_code, patientprofile_id]
-    else:
-        raise PreventUpdate
-
-    try:
-        modifyDB(sql, values)
-        return 'success', 'Patient Profile Submitted successfully!', True
-    except Exception as e:
-        return 'danger', f'Error Occurred: {e}', True
