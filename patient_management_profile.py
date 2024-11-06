@@ -1,9 +1,10 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-
+from dash import dcc, html, Input, Output, State
 from app import app
-from dbconnect import getDataFromDB
+from dbconnect import getDataFromDB, modifyDB
+from dash.exceptions import PreventUpdate
 
 layout = html.Div(
     [
@@ -260,6 +261,7 @@ layout = html.Div(
                     "Submit", 
                     color="primary", 
                     className="mt-3",
+                    id = 'submit_button',
                     style={
                         "borderRadius": "20px",
                         "fontWeight": "bold",
@@ -269,7 +271,54 @@ layout = html.Div(
                     },
                 )
             ]
-        )
+        ),
+        dbc.Alert(id='submit_alert', is_open=False)
     ],
     className="container mt-4"
+
 )
+
+@app.callback(
+    [Output('submit_alert','color'),
+     Output('submit_alert','children'),
+     Output('submit_alert','is_open')],
+    [Input('submit_button', 'n_clicks')],
+    [State('last_name', 'value'),
+     State('first_name', 'value'),
+     State('middle_name', 'value'),
+     State('birthdate', 'value'),
+     State('age', 'value'),
+     State('sex', 'value'),
+     State('cellphone_number', 'value'),
+     State('email_address', 'value'),
+     State('street', 'value'),
+     State('barangay', 'value'),
+     State('city', 'value'),
+     State('postal_code', 'value')]
+
+)
+def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
+                email_address, street, barangay, city, postal_code):
+    if n_clicks:
+        # Check for missing values in the required fields
+        if not (last_name and first_name and birthdate and age and sex and cellphone_number and email_address and street and barangay and city and postal_code):
+            return 'danger', 'Please fill in all required fields.', True
+        #sql to insert into the database :)
+
+        sql = """INSERT INTO patient (patient_last_m,patient_first_m,patient_middle_m, patient_bd,age,
+        sex, patient_cn, patient_email, street,barangay, city, postal_code, account_creation_date
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE);"""
+        
+        values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
+                email_address, street, barangay, city, postal_code]
+        
+        try:
+            modifyDB(sql,values)
+            return 'success', 'Patient Profile Submitted successfully!', True
+        except Exception as e :
+            return 'danger', f'Error Occured: {e}',True
+    else:
+        raise PreventUpdate
+    
+
+
