@@ -1,14 +1,16 @@
+from urllib.parse import parse_qs, urlparse
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from dash import dcc, html, Input, Output, State
+
+from dash import Input, Output, State
 from app import app
 from dbconnect import getDataFromDB, modifyDB
 from dash.exceptions import PreventUpdate
 
 layout = html.Div(
     [
-        # Header with Back Button
+        dcc.Store(id='patientprofile_id', storage_type='memory', data=0),
         dbc.Row(
             [
                 dbc.Col(html.H2("Add New Patient Profile", style={'font-size': '25px'}), width="auto"),
@@ -256,12 +258,22 @@ layout = html.Div(
                     className="mb-3"
                 ),
                 
-                # Submit Button
+                html.Div(
+                    [
+                        dbc.Checklist(
+                            id='patient_profile_delete',
+                            options=[dict(value=1, label="Mark as Deleted")],
+                            value=[]
+                        )
+                    ],
+                    id='movieprofile_deletediv'
+                ),
+
                 dbc.Button(
                     "Submit", 
                     color="primary", 
                     className="mt-3",
-                    id = 'submit_button',
+                    id='submit_button',
                     style={
                         "borderRadius": "20px",
                         "fontWeight": "bold",
@@ -275,13 +287,34 @@ layout = html.Div(
         dbc.Alert(id='submit_alert', is_open=False)
     ],
     className="container mt-4"
-
 )
 
 @app.callback(
-    [Output('submit_alert','color'),
-     Output('submit_alert','children'),
-     Output('submit_alert','is_open')],
+    [
+        Output('patientprofile_id', 'data'),
+        Output('patient_profile_delete', 'className')
+    ],
+    [Input('url', 'pathname')],
+    [State('url', 'search')]
+)
+def patient_profile_load(pathname, urlsearch):
+    if pathname == '/patient_profile/patient_management_profile':
+        parsed = urlparse(urlsearch)
+        create_mode = parse_qs(parsed.query).get('mode', [''])[0]
+
+        if create_mode == 'add':
+            patientprofile_id = 0
+        else:
+            patientprofile_id = int(parse_qs(parsed.query).get('id', [0])[0])
+        
+        return [patientprofile_id, '']
+    else:
+        raise PreventUpdate
+
+@app.callback(
+    [Output('submit_alert', 'color'),
+     Output('submit_alert', 'children'),
+     Output('submit_alert', 'is_open')],
     [Input('submit_button', 'n_clicks')],
     [State('last_name', 'value'),
      State('first_name', 'value'),
@@ -294,31 +327,56 @@ layout = html.Div(
      State('street', 'value'),
      State('barangay', 'value'),
      State('city', 'value'),
-     State('postal_code', 'value')]
-
+     State('postal_code', 'value'),
+     State('url', 'search'),
+     State('patientprofile_id', 'data')]
 )
 def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                email_address, street, barangay, city, postal_code):
-    if n_clicks:
-        # Check for missing values in the required fields
-        if not (last_name and first_name and birthdate and age and sex and cellphone_number and email_address and street and barangay and city and postal_code):
-            return 'danger', 'Please fill in all required fields.', True
-        #sql to insert into the database :)
+                email_address, street, barangay, city, postal_code, urlsearch, patientprofile_id):
+    
+    ctx = dash.callback_context
+    if not ctx.triggered or not n_clicks:
+        raise PreventUpdate
 
-        sql = """INSERT INTO patient (patient_last_m,patient_first_m,patient_middle_m, patient_bd,age,
-        sex, patient_cn, patient_email, street,barangay, city, postal_code, account_creation_date
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE);"""
+    parsed = urlparse(urlsearch)
+    create_mode = parse_qs(parsed.query).get('mode', [''])[0]
+
+    # Check for missing values in the required fields
+    if not all([last_name, first_name, birthdate, age, sex, cellphone_number, email_address, street, barangay, city, postal_code]):
+        return 'danger', 'Please fill in all required fields.', True
+
+    # SQL to insert or update the database
+    if create_mode == 'add':
+        sql = """INSERT INTO patient (patient_last_m, patient_first_m, patient_middle_m, patient_bd, age,
+                sex, patient_cn, patient_email, street, barangay, city, postal_code, account_creation_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE);"""
         
         values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                email_address, street, barangay, city, postal_code]
+                  email_address, street, barangay, city, postal_code]
+    
+    elif create_mode == 'edit':
+        sql = """UPDATE patient
+                SET patient_last_m = %s,
+                    patient_first_m = %s,
+                    patient_middle_m = %s,
+                    patient_bd = %s,
+                    age = %s,
+                    sex = %s,
+                    patient_cn = %s,
+                    patient_email = %s,
+                    street = %s,
+                    barangay = %s,
+                    city = %s,
+                    postal_code = %s
+                WHERE patient_id = %s;"""
         
-        try:
-            modifyDB(sql,values)
-            return 'success', 'Patient Profile Submitted successfully!', True
-        except Exception as e :
-            return 'danger', f'Error Occured: {e}',True
+        values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
+                  email_address, street, barangay, city, postal_code, patientprofile_id]
     else:
         raise PreventUpdate
-    
 
-
+    try:
+        modifyDB(sql, values)
+        return 'success', 'Patient Profile Submitted successfully!', True
+    except Exception as e:
+        return 'danger', f'Error Occurred: {e}', True
