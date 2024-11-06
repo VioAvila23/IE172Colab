@@ -47,7 +47,7 @@ layout = dbc.Container([
             html.Div(
                 id="patient-table",  # ID for table placeholder
                 className="text-center",
-                style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "500px"}  # Adjust height here
+                style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "1000px"}  # Adjust height here
             ),
             width=12,
             style={"border": "2px solid #194D62", "borderRadius": "10px", "padding": "20px"}
@@ -70,7 +70,7 @@ def update_records_table(patientfilter):
     val = []
 
     if patientfilter:
-        sql += " AND patient_name ILIKE %s"
+        sql += " WHERE patient.patient_last_m ILIKE %s"
         val.append(f'%{patientfilter}%')
 
     # Define the column names
