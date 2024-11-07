@@ -6,10 +6,38 @@ from dbconnect import getDataFromDB
 from app import app
 
 layout = dbc.Container([
-    
+    # Title Row for Appointment Management
     dbc.Row(
         [
-           dbc.Col(
+            dbc.Col(
+                [
+                    html.H2(
+                        'Appointment Management', 
+                        style={"marginBottom": "0px"}  # Reduce space below heading
+                    ),
+                ],
+                md=8,
+            ),
+            dbc.Col(
+                dbc.Button(
+                    "Schedule Appointment",
+                    href='/appointments/appointment_management_profile?mode=add',
+                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white", "marginBottom": "0px"},
+                    className="float-end"
+                ),
+                md=4,
+                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
+            ),
+        ],
+        className="mb-1", # Adjust margin-bottom of row
+        align="center"
+    ),
+    html.Hr(),
+
+    # Row for search bar and appointment button
+    dbc.Row(
+        [
+            dbc.Col(
                 [
                     html.Label(
                         "Search Appointment ID or Patient Name", 
@@ -26,21 +54,12 @@ layout = dbc.Container([
                 ],
                 md=8,
             ),
-            dbc.Col(
-                dbc.Button(
-                    "Schedule Appointment",
-                    href='/appointments/appointment_management_profile?mode=add',
-                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white"},
-                    className="float-end"
-                ),
-                md=4,
-                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
-            ),
         ],
         className="mb-4",
         align="center"
     ),
 
+    # Filter by Appointment Status
     dbc.Row(
         [
             dbc.Col(
@@ -51,7 +70,7 @@ layout = dbc.Container([
                         style={"fontSize": "18px", "fontWeight": "bold"}
                     ),
                     dcc.Dropdown(
-                        id="status_filter",  # ID for dropdown filter
+                        id="status_filter",
                         options=[
                             {"label": "Booked", "value": "Booked"},
                             {"label": "Pending", "value": "Pending"},
@@ -69,6 +88,7 @@ layout = dbc.Container([
         align="center"
     ),
 
+    # Table placeholder
     dbc.Row(
         dbc.Col(
             html.Div(
@@ -94,7 +114,6 @@ def update_records_table(appointmentfilter, status_filter):
     sql = """
     SELECT 
         appointment.appointment_id AS "Appointment ID",
-         
         CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name",
         appointment.appointment_status AS "Appointment Status", 
         appointment.appointment_time AS "Appointment Time", 
@@ -112,7 +131,7 @@ def update_records_table(appointmentfilter, status_filter):
         treatment ON appointment_treatment.treatment_id = treatment.treatment_id
     """
 
-    # List to hold SQL conditions and values
+    # SQL conditions and values
     conditions = []
     val = []
 
@@ -140,7 +159,7 @@ def update_records_table(appointmentfilter, status_filter):
     # Add GROUP BY and ORDER BY clauses
     sql += """
         GROUP BY 
-            appointment.appointment_id,  patient.patient_last_m, 
+            appointment.appointment_id, patient.patient_last_m, 
             patient.patient_first_m, appointment.appointment_status, 
             appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
         ORDER BY 
