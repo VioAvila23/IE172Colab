@@ -94,7 +94,7 @@ def update_records_table(appointmentfilter, status_filter):
     sql = """
     SELECT 
         appointment.appointment_id AS "Appointment ID",
-        patient.patient_id AS "Patient ID", 
+         
         CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name",
         appointment.appointment_status AS "Appointment Status", 
         appointment.appointment_time AS "Appointment Time", 
@@ -140,7 +140,7 @@ def update_records_table(appointmentfilter, status_filter):
     # Add GROUP BY and ORDER BY clauses
     sql += """
         GROUP BY 
-            appointment.appointment_id, patient.patient_id, patient.patient_last_m, 
+            appointment.appointment_id,  patient.patient_last_m, 
             patient.patient_first_m, appointment.appointment_status, 
             appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
         ORDER BY 
@@ -148,7 +148,7 @@ def update_records_table(appointmentfilter, status_filter):
     """
 
     # Define the column names
-    col = ["Appointment ID", "Patient ID", "Patient Name", "Appointment Status", "Appointment Time", "Appointment Date", "Appointment Reason"]
+    col = ["Appointment ID", "Patient Name", "Appointment Status", "Appointment Time", "Appointment Date", "Appointment Reason"]
 
     # Fetch the filtered data into a DataFrame
     df = getDataFromDB(sql, val, col)
