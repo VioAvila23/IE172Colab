@@ -25,17 +25,8 @@ layout = dbc.Container([
                     ),
                 ],
                 md=8,
-            ),
-            dbc.Col(
-                dbc.Button(
-                    "Add New Medical Result",
-                    href='/medical_record/medical_record_management_profile?mode=add',
-                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white"},
-                    className="float-end"
-                ),
-                md=4,
-                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
-            ),
+            )
+           
         ],
         className="mb-4",
         align="center"
@@ -120,4 +111,3 @@ def update_records_table(patientfilter):
     table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
 
     return [table]
-

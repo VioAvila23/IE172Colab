@@ -6,8 +6,19 @@ from dash import dcc, html, Input, Output
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # Define Navbar styling and active state
-navlink_style = {'color': '#062937', 'font-size': '20px', 'margin-right': '2.5em'}  # Increase margin-right for spacing
-navlink_active_style = {'color': '#062937', 'font-size': '20px', 'borderBottom': '3px solid blue', 'margin-right': '2.5em'}
+navlink_style = {
+    'color': '#062937',
+    'font-size': '20px',
+    'margin': '0 1.5em',  # Adjusted left and right margin for consistent spacing
+    'padding': '10px 0',  # Added padding for vertical alignment
+}
+navlink_active_style = {
+    'color': '#062937',
+    'font-size': '20px',
+    'borderBottom': '3px solid blue',
+    'margin': '0 1.5em',
+    'padding': '10px 0',
+}
 
 # Navbar component
 navbar = dbc.Navbar(
@@ -20,30 +31,32 @@ navbar = dbc.Navbar(
                         height="80px",
                         width="90px",
                         style={'margin-right': '20px'}
-                    )),
+                    ), width="auto"),  # Set width to auto to keep image and brand close
                     dbc.Col(dbc.NavbarBrand(
                         "Dental Studio",
                         className="ms-2",
-                        style={'color': '#062937', 'font-weight': 'bold', 'font-size': '33px', 'margin-right': '0.5em'}
-                    )),
+                        style={'color': '#062937', 'font-weight': 'bold', 'font-size': '33px'}
+                    ), width="auto"),
                 ],
                 align="center",
                 className="g-0 me-auto",
             ),
             dbc.Nav(
                 [
-                    dbc.NavLink("Home", href="/home", id="nav-home", className="px-3", style=navlink_style),
-                    dbc.NavLink("Appointment", href="/appointment", id="nav-appointment", className="px-3", style=navlink_style),
-                    dbc.NavLink("Patient Profile", href="/patient_profile", id="nav-patient-profile", className="px-3", style=navlink_style),
-                    dbc.NavLink("Financial Transaction", href="/financial_transaction", id="nav-financial-transaction", className="px-3", style=navlink_style),
+                    dbc.NavLink("Home", href="/home", id="nav-home", style=navlink_style),
+                    dbc.NavLink("Appointment", href="/appointment", id="nav-appointment", style=navlink_style),
+                    dbc.NavLink("Patient Profile", href="/patient_profile", id="nav-patient-profile", style=navlink_style),
+                    dbc.NavLink("Medical Records", href="/medical_records", id="nav-medical-records", style=navlink_style),
+                    dbc.NavLink("Financial Transaction", href="/financial_transaction", id="nav-financial-transaction", style=navlink_style),
                 ],
                 className="ms-auto",
                 navbar=True,
             ),
-        ]
+        ],
+        fluid=True,  # Full-width container for better spacing control
     ),
     color="#FFF",
     dark=False,
     className="mb-4",
-    style={'padding': '15px', 'borderBottom': '2px solid #e3e3e3', 'margin-bottom':'0'}
+    style={'padding': '15px', 'borderBottom': '2px solid #e3e3e3'}
 )

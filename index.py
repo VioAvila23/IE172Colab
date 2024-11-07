@@ -9,6 +9,8 @@ from dash.exceptions import PreventUpdate
 from app import app
 from apps import commonmodules as cm
 from apps.patient_profile import patient_management, patient_management_profile
+from apps.medical_records import medical_records_management, medical_records_management_profile, medical_records_profile
+
 from apps import home
 
 # Define styles for active and inactive navbar links
@@ -29,12 +31,13 @@ app.layout = html.Div(
     [Output("nav-home", "style"),
      Output("nav-appointment", "style"),
      Output("nav-patient-profile", "style"),
+     Output("nav-medical-records", "style"),
      Output("nav-financial-transaction", "style")],
     [Input("url", "pathname")]
 )
 def update_active_link_style(pathname):
     # Default all styles to non-active
-    styles = [navlink_style, navlink_style, navlink_style, navlink_style]
+    styles = [navlink_style, navlink_style, navlink_style, navlink_style, navlink_style]
     
     # Set active style based on URL path
     if pathname == "/home":
@@ -43,8 +46,10 @@ def update_active_link_style(pathname):
         styles[1] = navlink_active_style
     elif pathname == "/patient_profile":
         styles[2] = navlink_active_style
-    elif pathname == "/financial_transaction":
+    elif pathname == "/medical_records":
         styles[3] = navlink_active_style
+    elif pathname == "/financial_transaction":
+        styles[4] = navlink_active_style
     
     return styles
 
@@ -58,13 +63,19 @@ def display_page_content(pathname):
     if pathname == '/' or pathname == '/home':
         return home.layout  # Assumes home.layout is defined in the `home` module
     elif pathname == '/appointment':
-        return html.Div("Appointment Page Content")  # Placeholder for the Appointment page
+        return html.Div("Appointment") # Placeholder for the Appointment page
     elif pathname == '/patient_profile':
         return patient_management.layout
     elif pathname == '/patient_profile/patient_management_profile':
         return patient_management_profile.layout  # Placeholder for the Patient Profile page
+    elif pathname == '/medical_records':
+        return medical_records_management.layout
+    elif pathname == '/medical_records/medical_record_profile':
+        return medical_records_profile.layout
+    elif pathname == '/medical_records/medical_record_management_profile':
+        return medical_records_management_profile.layout
     elif pathname == '/financial_transaction':
-        return html.Div("Financial Transaction Page Content")  # Placeholder for Financial Transaction page
+        return html.Div("Financial Transac")  # Placeholder for Financial Transaction page
     else:
         # Display a 404 error message for unknown paths
         return html.Div("404 - Page not found", style={'color': 'red', 'font-size': '24px', 'text-align': 'center'})
@@ -72,3 +83,4 @@ def display_page_content(pathname):
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:8050/', new=0, autoraise=True)
     app.run_server(debug=False)
+

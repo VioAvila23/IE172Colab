@@ -1,8 +1,7 @@
-from urllib.parse import parse_qs, urlparse
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html
-from dash import Input, Output, State
+from dash import dcc, html, Input, Output, State
+from urllib.parse import parse_qs, urlparse
 from app import app
 from dbconnect import getDataFromDB, modifyDB
 from dash.exceptions import PreventUpdate
@@ -10,9 +9,10 @@ from dash.exceptions import PreventUpdate
 layout = dbc.Container([
     dcc.Store(id='medicalprofile_id', storage_type='memory', data=0),  # Store to hold patient ID
 
-    # Row for patient information display
+    # Row for patient information display and action buttons
     dbc.Row(
         [
+            # Column for patient information display
             dbc.Col(
                 [
                     html.Label("Patient Medical Record Information", className="form-label", style={"fontSize": "18px", "fontWeight": "bold"}),
@@ -62,7 +62,42 @@ layout = dbc.Container([
                         style={"fontSize": "18px", "paddingBottom": "10px"}
                     ),
                 ],
-                md=12,
+                md=8,
+            ),
+
+            # Column for action buttons aligned to the far right side
+            dbc.Col(
+                [
+                    dbc.Button(
+                        "Back",
+                        color="secondary",
+                        href="/medical_records",
+                        style={
+                            "borderRadius": "20px",
+                            "fontWeight": "bold",
+                            "fontSize": "16px",
+                            "backgroundColor": "#194D62",
+                            "color": "white",
+                            "width": "200px"  # Set a fixed width for consistency
+                        },
+                        className="mb-2"  # Margin-bottom for spacing between buttons
+                    ),
+                    dbc.Button(
+                        "Add New Medical Record",
+                        color="primary",
+                        id="add_record_button",  # Add an ID for the button
+                        style={
+                            "borderRadius": "20px",
+                            "fontWeight": "bold",
+                            "fontSize": "16px",
+                            "backgroundColor": "#194D62",
+                            "color": "white",
+                            "width": "200px"  # Set a fixed width for consistency
+                        }
+                    ),
+                ],
+                md="auto",
+                className="d-flex flex-column align-items-end ms-auto"  # Align items to the far right
             ),
         ],
         className="mb-4",
@@ -83,10 +118,11 @@ layout = dbc.Container([
     ),
 ], fluid=True, style={"padding": "20px", "backgroundColor": "#f8f9fa"})
 
+# Callback to load medical profile ID from the URL
 @app.callback(
     [Output('medicalprofile_id', 'data')],
-    [Input('url', 'pathname'),],
-    [State('url', 'search'),]
+    [Input('url', 'pathname')],
+    [State('url', 'search')]
 )
 def medical_record_load(pathname, urlsearch):
     if pathname == '/medical_records/medical_record_profile':
@@ -96,6 +132,17 @@ def medical_record_load(pathname, urlsearch):
     else:
         raise PreventUpdate
 
+# Callback to update the "Add New Medical Record" button href dynamically
+@app.callback(
+    Output("add_record_button", "href"),
+    [Input("medicalprofile_id", "data")]
+)
+def update_add_record_button_href(medicalprofile_id):
+    if medicalprofile_id:
+        return f"/medical_records/medical_record_management_profile?mode=add&id={medicalprofile_id}"
+    return "/medical_records/medical_record_management_profile?mode=add"  # Default URL if no ID is set
+
+# Callback to display the medical records table
 @app.callback(
     [Output('medical-records-table', 'children')],
     [Input('medicalprofile_id', 'data')]
@@ -125,7 +172,7 @@ def display_medical_records(medicalprofile_id):
     """
     val = [medicalprofile_id]
 
-    col = ['PatientID', 'Appointment Date', 'Treatment Done', 'Condition', 'Diagnosis', 'Prescription']
+    col = ['PatientID', 'Date', 'Treatment Done', 'Condition', 'Diagnosis', 'Prescription']
 
     df = getDataFromDB(sql, val, col)
 
@@ -136,7 +183,7 @@ def display_medical_records(medicalprofile_id):
     df['Action'] = [
         html.Div(
             dbc.Button("Edit", color='warning', size='sm', 
-                       href=f'/patient_profile/patient_management_profile?mode=edit&id={medicalprofile_id}'),
+                       href=f'/medical_records/medical_record_management_profile?mode=edit&id={medicalprofile_id}'),
             className='text-center'
         ) for _ in range(len(df))
     ]
@@ -145,7 +192,7 @@ def display_medical_records(medicalprofile_id):
 
     return [table]
 
-
+# Callback to display profile information
 @app.callback(
     [
         Output('display_last_name', 'children'),
@@ -154,7 +201,7 @@ def display_medical_records(medicalprofile_id):
         Output('display_age', 'children'),
         Output('display_sex', 'children'),
     ],
-    [Input('medicalprofile_id', 'data'),]
+    [Input('medicalprofile_id', 'data')]
 )
 def displayprofile(medicalprofile_id):
     if medicalprofile_id == 0:
@@ -192,14 +239,3 @@ def displayprofile(medicalprofile_id):
 
     # Return the values to populate the placeholders
     return last_name, first_name, middle_name, age, sex
-
-
-    
-    
-
-
-
-
-
-
-
