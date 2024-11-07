@@ -167,7 +167,7 @@ layout = html.Div(
                     className="mb-3"
                 ),
 
-                html.div(
+                html.Div(
                     [
                        dbc.Checklist(
                             id='appointment_profile_delete',
@@ -176,7 +176,7 @@ layout = html.Div(
                        )
                     ],
                     id='appointmentprofile_deletediv'
-                )
+                ),
 
                 # Submit Button
                 dbc.Button(
