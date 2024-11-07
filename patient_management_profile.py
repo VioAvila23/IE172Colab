@@ -266,7 +266,7 @@ layout = html.Div(
                             value=[]
                         )
                     ],
-                    id='movieprofile_deletediv'
+                    id='patientprofile_deletediv'
                 ),
 
                 dbc.Button(
@@ -292,7 +292,7 @@ layout = html.Div(
 @app.callback(
     [
         Output('patientprofile_id', 'data'),
-        Output('patient_profile_delete', 'className')
+        Output('patientprofile_deletediv', 'className')
     ],
     [Input('url', 'pathname')],
     [State('url', 'search')]
@@ -304,10 +304,13 @@ def patient_profile_load(pathname, urlsearch):
 
         if create_mode == 'add':
             patientprofile_id = 0
+            deletediv = 'd-none'
+            
         else:
             patientprofile_id = int(parse_qs(parsed.query).get('id', [0])[0])
+            deletediv =''
         
-        return [patientprofile_id, '']
+        return [patientprofile_id, deletediv]
     else:
         raise PreventUpdate
 
@@ -380,3 +383,52 @@ def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, se
         return 'success', 'Patient Profile Submitted successfully!', True
     except Exception as e:
         return 'danger', f'Error Occurred: {e}', True
+
+@app.callback(
+    [Output('last_name', 'value'),
+    Output('first_name', 'value'),
+    Output('middle_name', 'value'),
+    Output('birthdate', 'value'),
+    Output('age', 'value'),
+    Output('sex', 'value'),
+    Output('cellphone_number', 'value'),
+    Output('email_address', 'value'),
+    Output('street', 'value'),
+    Output('barangay', 'value'),
+    Output('city', 'value'),
+    Output('postal_code', 'value'),
+    ],
+    [Input('patientprofile_id', 'modified_timestamp'),],
+
+    [State('patientprofile_id', 'data'),]
+)
+def patient_profile_populate(timestamp, patientprofile_id):
+    if patientprofile_id > 0:
+        sql = """SELECT patient_last_m, patient_first_m, patient_middle_m, patient_bd, age,
+                sex, patient_cn, patient_email, street, barangay, city, postal_code
+                FROM patient
+                WHERE patient_id = %s"""
+        values = [patientprofile_id]
+        col = ['last_name', 'first_name', 'middle_name', 'birthdate', 'age', 'sex', 'cellphone_number', 
+               'email_address', 'street', 'barangay', 'city', 'postal_code']
+
+        df = getDataFromDB(sql, values, col)
+
+        lastname = df['last_name'][0]
+        firstname = df['first_name'][0]
+        middlename = df['middle_name'][0]
+        birthdate = df['birthdate'][0]
+        age = df['age'][0]
+        sex = df['sex'][0]
+        cellphonenumber = df['cellphone_number'][0]
+        emailaddress = df['email_address'][0]
+        street = df['street'][0]
+        barangay = df['barangay'][0]
+        city = df['city'][0]
+        postal_code = df['postal_code'][0]
+
+        return [
+            lastname, firstname, middlename, birthdate, age, sex,
+            cellphonenumber, emailaddress, street, barangay, city, postal_code]
+    else:
+        raise PreventUpdate
