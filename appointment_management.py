@@ -60,15 +60,14 @@ layout = dbc.Container([
         Input('search_patient_name', 'value'),
     ]
 )
-def update_records_table(patientfilter):
-    # Base SQL query
+def update_records_table(appointmentfilter):
     sql = """
         SELECT appointment.appointment_id, patient.patient_id, patient.patient_last_m, appointment.appointment_status, appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
 
         FROM patient"""
     val = []
 
-    if patientfilter:
+    if appointmentfilter:
         sql += " AND patient_name ILIKE %s"
         val.append(f'%{patientfilter}%')
 
