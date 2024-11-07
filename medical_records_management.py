@@ -6,7 +6,25 @@ from dbconnect import getDataFromDB
 from app import app
 
 layout = dbc.Container([
-    # Row fsor search bar and Add New Patient button
+    # Title Row for Medical Records Management
+    dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.H2(
+                        'Medical Records Management', 
+                        style={"marginBottom": "0px"}  # Reduce space below heading
+                    ),
+                ],
+                md=8,
+            ),
+        ],
+        className="mb-1", # Adjust margin-bottom of row
+        align="center"
+    ),
+    html.Hr(),
+
+    # Row for search bar
     dbc.Row(
         [
             dbc.Col(
@@ -25,8 +43,7 @@ layout = dbc.Container([
                     ),
                 ],
                 md=8,
-            )
-           
+            ),
         ],
         className="mb-4",
         align="center"
@@ -49,7 +66,7 @@ layout = dbc.Container([
 @app.callback(
     Output('medical_record_table', 'children'),
     [
-    Input('search_medical_records', 'value'),
+        Input('search_medical_records', 'value'),
     ]
 )
 def update_records_table(patientfilter):
@@ -91,14 +108,13 @@ def update_records_table(patientfilter):
     # Define the column names for the resulting DataFrame
     col = ["Patient ID", "Patient Name"]
 
-
     # Fetch the filtered data into a DataFrame
     df = getDataFromDB(sql, val, col)
 
     if df.empty:
         return [html.Div("No records found.", className="text-center")]
 
-    # Generating edit buttons for each patient
+    # Generating view buttons for each patient
     df['View Medical Record'] = [
         html.Div(
             dbc.Button("View", color='warning', size='sm', 
