@@ -65,17 +65,40 @@ layout = dbc.Container([
 def update_records_table(patientfilter):
     # Base SQL query for the Patient table
     sql = """
-        SELECT patient.patient_id, patient.patient_last_m,age, patient.patient_cn
-
-        FROM patient"""
+        SELECT 
+        p.patient_id,
+        CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
+        p.age as "Age",
+        p.patient_cn as "Patient Number",
+        p.patient_email as "Email Address",
+        MAX(a.appointment_date) AS "Last Visit"
+        FROM 
+        Patient p
+        LEFT JOIN 
+        Appointment a ON p.patient_id = a.patient_id
+    """
     val = []
 
+    # Add the WHERE clause if a filter is provided
     if patientfilter:
-        sql += " WHERE patient.patient_last_m ILIKE %s"
-        val.append(f'%{patientfilter}%')
+        sql += """
+            WHERE 
+            p.patient_last_m ILIKE %s OR 
+            p.patient_first_m ILIKE %s OR 
+            p.patient_middle_m ILIKE %s
+        """
+        val.extend([f'%{patientfilter}%'] * 3)
+
+    # Add the GROUP BY and ORDER BY clauses
+    sql += """
+        GROUP BY 
+        p.patient_id, p.patient_last_m, p.patient_first_m, p.patient_middle_m, p.age, p.patient_cn, p.patient_email
+        ORDER BY 
+        p.patient_id
+    """
 
     # Define the column names
-    col = ["Patient ID", "Patient Name", "Age", "Patient Contact Number"]
+    col = ["Patient ID", "Patient Name", "Age", "Patient Contact Number", "Patient Email Address", "Last Visit"]
 
     # Fetch the filtered data into a DataFrame
     df = getDataFromDB(sql, val, col)
