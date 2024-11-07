@@ -1,94 +1,184 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output
-import pandas as pd
-from dbconnect import getDataFromDB
+from dash import dcc, html
+
 from app import app
+from dbconnect import getDataFromDB
 
-layout = dbc.Container([
-    
-    dbc.Row(
-        [
-           dbc.Col(
-                [
-                    html.Label(
-                        "Filter by Appointment ID, Patient ID, Appointment Date, etc,", 
-                        className="form-label", 
-                        style={"fontSize": "18px", "fontWeight": "bold"}
-                    ),
-                    dcc.Input(
-                        id="search_appointment", 
-                        type="text",
-                        placeholder="Enter Appointment ID, Patient ID, Appointment Date, etc...",
-                        className="form-control",
-                        style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                    ),
-                ],
-                md=8,
-            ),
-            dbc.Col(
-                dbc.Button(
-                    "Schedule Appointment",
-                    href='/appointments/appointment_management_profile?mode=add',
-                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white"},
-                    className="float-end"
-                ),
-                md=4,
-                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
-            ),
-        ],
-        className="mb-4",
-        align="center"
-    ),
-
-    dbc.Row(
-        dbc.Col(
-            html.Div(
-                id="appointment-table", 
-                className="text-center",
-                style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "500px"} 
-            ),
-            width=12,
-            style={"border": "2px solid #194D62", "borderRadius": "10px", "padding": "20px"}
-        ),
-    ),
-], fluid=True, style={"padding": "20px", "backgroundColor": "#f8f9fa"})
-
-@app.callback(
-    Output('appointment-table', 'children'),
+layout = html.Div(
     [
-        Input('search_patient_name', 'value'),
-    ]
+        # Header with Back Button
+        dbc.Row(
+            [
+                dbc.Col(html.H2("Schedule New Appointment", style={'font-size': '25px'}), width="auto"),
+                dbc.Col(
+                    dbc.Button(
+                        "Back",
+                        color="secondary",
+                        href="/appointment",
+                        style={
+                            "borderRadius": "20px",
+                            "fontWeight": "bold",
+                            "fontSize": "16px",
+                            "marginRight": "10px",
+                            "backgroundColor": "#194D62"
+                        }
+                    ),
+                    width="auto"
+                ),
+            ],
+            align="center",
+            className="mb-4"
+        ),
+        
+        html.Hr(),
+        
+        # Form Layout
+        dbc.Form(
+            [
+                # Last Name
+                dbc.Row(
+                    [
+                        dbc.Label("Last Name", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='text',
+                                id='last_name',
+                                placeholder='Enter Last Name',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+                
+                # First Name
+                dbc.Row(
+                    [
+                        dbc.Label("First Name", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='text',
+                                id='first_name',
+                                placeholder='Enter First Name',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+                
+                # Middle Name
+                dbc.Row(
+                    [
+                        dbc.Label("Middle Name", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='text',
+                                id='middle_name',
+                                placeholder='Enter Middle Name',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+                
+                # Appointment Date
+                dbc.Row(
+                    [
+                        dbc.Label("Appointment Date", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='date',
+                                id='appointment_date',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+                
+                # Appointment Time
+                dbc.Row(
+                    [
+                        dbc.Label("Appointment Time", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='time',
+                                id='appointment_time',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+                
+                # Appointment Reason
+                dbc.Row(
+                    [
+                        dbc.Label("Appointment Reason", width=2),
+                        dbc.Col(
+                            dbc.Input(
+                                type='text',
+                                id='appointment_reason',
+                                placeholder='Enter Appointment Reason',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),             
+                
+                # Appointment Status
+                dbc.Row(
+                    [
+                        dbc.Label("Appointment Status", width=2),
+                        dbc.Col(
+                            dbc.Select(
+                                id='appointment_status',
+                                options=[
+                                    {'label': 'Booked', 'value': 'Booked'},
+                                    {'label': 'Pending', 'value': 'Pending'},
+                                    {'label': 'Complete', 'value': 'Complete'},
+                                ],
+                                placeholder='Select Status',
+                                className="form-control",
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8
+                        ),
+                    ],
+                    className="mb-3"
+                ),
+
+                # Submit Button
+                dbc.Button(
+                    "Submit", 
+                    color="primary", 
+                    className="mt-3",
+                    style={
+                        "borderRadius": "20px",
+                        "fontWeight": "bold",
+                        "fontSize": "18px",
+                        "backgroundColor": "#194D62",
+                        "color": "white"
+                    },
+                )
+            ]
+        )
+    ],
+    className="container mt-4"
 )
-def update_records_table(appointmentfilter):
-    sql = """
-        SELECT appointment.appointment_id, patient.patient_id, patient.patient_last_m, appointment.appointment_status, appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
-
-        FROM patient"""
-    val = []
-
-    if appointmentfilter:
-        sql += " AND patient_name ILIKE %s"
-        val.append(f'%{patientfilter}%')
-
-    # Define the column names
-    col = ["Appointment ID", "Patient ID", "Patient Name", "Appointment Status", "Appointment Time", "Appointment Date", "Appointment Reason"]
-
-    # Fetch the filtered data into a DataFrame
-    df = getDataFromDB(sql, val, col)
-
-    if df.empty:
-        return [html.Div("No records found.", className="text-center")]
-
-    df['Action'] = [
-        html.Div(
-            dbc.Button("Reschedule", color='warning', size='sm', 
-                       href=f'/appointments/appointment_management_profile?mode=edit&id={row["Appointment ID"]}'),
-            className='text-center'
-        ) for idx, row in df.iterrows()
-    ]
-
-    # Creating the updated table with centered text
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
-
-    return [table]
