@@ -39,6 +39,37 @@ layout = html.Div(
         # Form Layout
         dbc.Form(
             [
+                # Patient Name
+                dbc.Row(
+                    [
+                        dbc.Label("Patient Name", width=2),
+                        dbc.Col(
+                            dcc.Dropdown(
+                                id='patient_name_dropdown',
+                                placeholder='Select Patient Name',
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8,
+                        ),
+                    ],
+                    className='mb-3'
+                ),
+
+                # Treatment Name
+                dbc.Row(
+                    [
+                        dbc.Label("Treatment Name", width=2),
+                        dbc.Col(
+                            dcc.Dropdown(
+                                id='treatment_name_dropdown',
+                                placeholder='Select Treatment Name',
+                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            ),
+                            width=8,
+                        ),
+                    ],
+                    className='mb-3'
+                ),
                 # Payment Date
                 dbc.Row(
                     [
@@ -150,6 +181,40 @@ layout = html.Div(
     ],
     className="container mt-4"
 )
+
+@app.callback(
+    Output('patient_name_dropdown', 'options'),
+    Input('patient_name_dropdown', 'id')
+)
+def load_patient_names(_):
+    # SQL query to fetch patient names
+    sql = """
+        SELECT patient_id, CONCAT(patient_last_m, ', ', patient_first_m) AS patient_name
+        FROM patient
+    """
+    # Fetch data from DB with empty values and columns lists
+    df = getDataFromDB(sql, [], ["patient_id", "patient_name"])
+    
+    # Return data as options for dropdown
+    return [{"label": row["patient_name"], "value": row["patient_id"]} for _, row in df.iterrows()]
+
+
+@app.callback(
+    Output('treatment_name_dropdown', 'options'),
+    Input('treatment_name_dropdown', 'id')
+)
+def load_treatment_names(_):
+    # SQL query to fetch treatment names
+    sql = """
+        SELECT treatment_id, treatment_m AS treatment_name
+        FROM treatment
+    """
+    # Fetch data from DB with empty values and columns lists
+    df = getDataFromDB(sql, [], ["treatment_id", "treatment_name"])
+    
+    # Return data as options for dropdown
+    return [{"label": row["treatment_name"], "value": row["treatment_id"]} for _, row in df.iterrows()]
+
 
         # dbc.Modal( # Modal = dialog box; feedback for successful saving.
         #     [
