@@ -6,6 +6,34 @@ from dbconnect import getDataFromDB
 from app import app
 
 layout = dbc.Container([
+    # Title Row for Patient Profile Management
+    dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.H2(
+                        'Patient Profile Management', 
+                        style={"marginBottom": "0px"}  # Reduce space below heading
+                    ),
+                ],
+                md=8,
+            ),
+            dbc.Col(
+                dbc.Button(
+                    "Add New Patient",
+                    href='/patient_profile/patient_management_profile?mode=add',
+                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white", "marginBottom": "0px"},
+                    className="float-end"
+                ),
+                md=4,
+                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
+            ),
+        ],
+        className="mb-1", # Adjust margin-bottom of row
+        align="center"
+    ),
+    html.Hr(),
+
     # Row for search bar and Add New Patient button
     dbc.Row(
         [
@@ -25,16 +53,6 @@ layout = dbc.Container([
                     ),
                 ],
                 md=8,
-            ),
-            dbc.Col(
-                dbc.Button(
-                    "Add New Patient",
-                    href='/patient_profile/patient_management_profile?mode=add',
-                    style={"borderRadius": "20px", "fontWeight": "bold", "fontSize": "18px", "backgroundColor": "#194D62", "color": "white"},
-                    className="float-end"
-                ),
-                md=4,
-                style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"},
             ),
         ],
         className="mb-4",
