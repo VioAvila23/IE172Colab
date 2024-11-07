@@ -16,7 +16,7 @@ layout = html.Div(
                     dbc.Button(
                         "Back",
                         color="secondary",
-                        href="/financial_transaction_management",
+                        href="/financial_transaction",
                         style={
                             "borderRadius": "20px",
                             "fontWeight": "bold",
