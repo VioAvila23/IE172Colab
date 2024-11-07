@@ -74,7 +74,7 @@ layout = dbc.Container([
             html.Div(
                 id="appointment-table", 
                 className="text-center",
-                style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "500px"} 
+                style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "1500px"} 
             ),
             width=12,
             style={"border": "2px solid #194D62", "borderRadius": "10px", "padding": "20px"}
@@ -85,63 +85,66 @@ layout = dbc.Container([
 @app.callback(
     Output('appointment-table', 'children'),
     [
-          Input('search_appointment', 'value'),
-            Input('status_filter', 'value'),
+        Input('search_appointment', 'value'),
+        Input('status_filter', 'value'),
     ]
 )
 def update_records_table(appointmentfilter, status_filter):
     # Base SQL query
     sql = """
-        SELECT 
-            appointment.appointment_id AS "Appointment ID",
-            patient.patient_id AS "Patient ID", 
-            CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name",
-            appointment.appointment_status AS "Appointment Status", 
-            appointment.appointment_time AS "Appointment Time", 
-            appointment.appointment_date AS "Appointment Date", 
-            appointment.appointment_reason AS "Appointment Reason"
-        FROM 
-            appointment
-        JOIN 
-            appointment_treatment ON payment.payment_id = appointment_treatment.payment_id
-        JOIN 
-            appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-        JOIN 
-            patient ON appointment.patient_id = patient.patient_id
-        JOIN 
-            treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+    SELECT 
+        appointment.appointment_id AS "Appointment ID",
+        patient.patient_id AS "Patient ID", 
+        CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name",
+        appointment.appointment_status AS "Appointment Status", 
+        appointment.appointment_time AS "Appointment Time", 
+        appointment.appointment_date AS "Appointment Date", 
+        appointment.appointment_reason AS "Appointment Reason"
+    FROM 
+        appointment
+    JOIN 
+        appointment_treatment ON appointment.appointment_id = appointment_treatment.appointment_id
+    JOIN 
+        patient ON appointment.patient_id = patient.patient_id
+    JOIN 
+        payment ON payment.payment_id = appointment_treatment.payment_id
+    JOIN 
+        treatment ON appointment_treatment.treatment_id = treatment.treatment_id
     """
+
+    # List to hold SQL conditions and values
+    conditions = []
     val = []
 
-    filters = []
+    # Add conditions based on input values
     if appointmentfilter:
         if appointmentfilter.isdigit():
-            filters.append("appointment.appointment_id = %s")
+            conditions.append("appointment.appointment_id = %s")
             val.append(int(appointmentfilter))
         else:
-            sql += """
-                WHERE 
-                patient.patient_last_m ILIKE %s OR 
-                patient.patient_first_m ILIKE %s OR 
-                patient.patient_middle_m ILIKE %s
-            """
+            conditions.append("""
+                (patient.patient_last_m ILIKE %s OR 
+                 patient.patient_first_m ILIKE %s OR 
+                 patient.patient_middle_m ILIKE %s)
+            """)
             val.extend([f'%{appointmentfilter}%'] * 3)
 
     if status_filter:
-        filters.append("appointment.appointment_status = %s")
+        conditions.append("appointment.appointment_status = %s")
         val.append(status_filter)
 
-    # Add WHERE clause if any filters are applied
-    if filters:
-        sql += " WHERE " + " AND ".join(filters)
+    # Add WHERE clause if there are conditions
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
 
-    # Add the GROUP BY and ORDER BY clauses
+    # Add GROUP BY and ORDER BY clauses
     sql += """
         GROUP BY 
-        appointment.appointment_id, patient.patient_id, patient.patient_last_m, patient.patient_first_m, appointment.appointment_status, 
-        appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
+            appointment.appointment_id, patient.patient_id, patient.patient_last_m, 
+            patient.patient_first_m, appointment.appointment_status, 
+            appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
         ORDER BY 
-        appointment.appointment_id
+            appointment.appointment_id DESC
     """
 
     # Define the column names
@@ -153,6 +156,7 @@ def update_records_table(appointmentfilter, status_filter):
     if df.empty:
         return [html.Div("No records found.", className="text-center")]
 
+    # Adding action buttons for each row
     df['Action'] = [
         html.Div(
             dbc.Button("Reschedule", color='warning', size='sm', 
@@ -161,7 +165,7 @@ def update_records_table(appointmentfilter, status_filter):
         ) for idx, row in df.iterrows()
     ]
 
-    # Creating the updated table with centered text
+    # Create the table from the DataFrame
     table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
 
     return [table]
