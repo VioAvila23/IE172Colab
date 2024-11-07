@@ -6,20 +6,20 @@ from dbconnect import getDataFromDB
 from app import app
 
 layout = dbc.Container([
-    # Row fsor search bar and Add New Patient button
+    # Row for search bar and Add New Patient button
     dbc.Row(
         [
             dbc.Col(
                 [
                     html.Label(
-                        "Search Patient Name", 
+                        "Search Patient ID or Name", 
                         className="form-label", 
                         style={"fontSize": "18px", "fontWeight": "bold"}
                     ),
                     dcc.Input(
                         id="search_patient_name",  # ID for search bar
                         type="text",
-                        placeholder="Enter patient name...",
+                        placeholder="Enter patient ID or name...",
                         className="form-control",
                         style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                     ),
@@ -64,17 +64,45 @@ layout = dbc.Container([
 def update_records_table(patientfilter):
     # Base SQL query for the Patient table
     sql = """
-        SELECT patient.patient_id, patient.patient_last_m,age, patient.patient_cn
-
-        FROM patient"""
+        SELECT 
+        p.patient_id,
+        CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
+        p.age as "Age",
+        p.patient_cn as "Patient Number",
+        p.patient_email as "Email Address",
+        MAX(a.appointment_date) AS "Last Visit"
+        FROM 
+        Patient p
+        LEFT JOIN 
+        Appointment a ON p.patient_id = a.patient_id
+    """
     val = []
 
+    # Add the WHERE clause if a filter is provided
     if patientfilter:
-        sql += " WHERE patient.patient_last_m ILIKE %s"
-        val.append(f'%{patientfilter}%')
+        # Check if the filter is numeric to search by patient_id
+        if patientfilter.isdigit():
+            sql += " WHERE p.patient_id = %s"
+            val.append(int(patientfilter))
+        else:
+            sql += """
+                WHERE 
+                p.patient_last_m ILIKE %s OR 
+                p.patient_first_m ILIKE %s OR 
+                p.patient_middle_m ILIKE %s
+            """
+            val.extend([f'%{patientfilter}%'] * 3)
+
+    # Add the GROUP BY and ORDER BY clauses
+    sql += """
+        GROUP BY 
+        p.patient_id, p.patient_last_m, p.patient_first_m, p.patient_middle_m, p.age, p.patient_cn, p.patient_email
+        ORDER BY 
+        p.patient_id
+    """
 
     # Define the column names
-    col = ["Patient ID", "Patient Name", "Age", "Patient Contact Number"]
+    col = ["Patient ID", "Patient Name", "Age", "Patient Contact Number", "Patient Email Address", "Last Visit"]
 
     # Fetch the filtered data into a DataFrame
     df = getDataFromDB(sql, val, col)
@@ -83,13 +111,6 @@ def update_records_table(patientfilter):
         return [html.Div("No records found.", className="text-center")]
 
     # Generating edit buttons for each patient
-    df['Medical Record'] = [
-        html.Div(
-            dbc.Button("View", color='warning', size='sm', 
-                       href=f'/patient_profile/patient_management_profile?mode=edit&id={row["Patient ID"]}'),
-            className='text-center'
-        ) for idx, row in df.iterrows()
-    ]
     df['Action'] = [
         html.Div(
             dbc.Button("Edit", color='warning', size='sm', 
