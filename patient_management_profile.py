@@ -5,7 +5,7 @@ from dash import dcc, html
 
 from dash import Input, Output, State
 from app import app
-from dbconnect import getDataFromDB, modifyDB
+from apps.dbconnect import getDataFromDB, modifyDB
 from dash.exceptions import PreventUpdate
 
 layout = html.Div(
@@ -13,7 +13,7 @@ layout = html.Div(
         dcc.Store(id='patientprofile_id', storage_type='memory', data=0),
         dbc.Row(
             [
-                dbc.Col(html.H2("Add New Patient Profile", style={'font-size': '25px'}), width="auto"),
+                dbc.Col(html.H2(id="patient_profile_header", style={'font-size': '25px'}), width="auto"),
                 dbc.Col(
                     dbc.Button(
                         "Back",
@@ -313,6 +313,19 @@ def patient_profile_load(pathname, urlsearch):
         return [patientprofile_id, deletediv]
     else:
         raise PreventUpdate
+
+@app.callback(
+    Output('patient_profile_header', 'children'),
+    Input('url', 'search')
+)
+def update_header(urlsearch):
+    parsed = urlparse(urlsearch)
+    create_mode = parse_qs(parsed.query).get('mode', [''])[0]
+    
+    if create_mode == 'add':
+        return "Add New Patient Profile"
+    else:
+        return "Edit Patient Profile"
 
 @app.callback(
     [Output('submit_alert', 'color'),
