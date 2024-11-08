@@ -2,7 +2,6 @@ from urllib.parse import parse_qs, urlparse
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-
 from dash import Input, Output, State
 from app import app
 from apps.dbconnect import getDataFromDB, modifyDB
@@ -11,10 +10,16 @@ from dash.exceptions import PreventUpdate
 layout = html.Div(
     [
         dcc.Store(id='financial_transaction_id', storage_type='memory', data=0),
-        # Header with Back Button
+        # Header with dynamic title based on mode
         dbc.Row(
             [
-                dbc.Col(html.H2("Add New Financial Transaction Record", style={'font-size': '25px'}), width="auto"),
+                dbc.Col(
+                    html.H2(
+                        id="financial_transaction_header",
+                        style={'font-size': '25px'}
+                    ),
+                    width="auto"
+                ),
                 dbc.Col(
                     dbc.Button(
                         "Back",
@@ -36,8 +41,6 @@ layout = html.Div(
         ),
         
         html.Hr(),
-
-        # dbc.Alert(id='financial_transaction_alert', is_open=False), # For feedback purposes
 
         # Form Layout
         dbc.Form(
@@ -73,6 +76,7 @@ layout = html.Div(
                     ],
                     className='mb-3'
                 ),
+                
                 # Payment Date
                 dbc.Row(
                     [
@@ -190,7 +194,7 @@ layout = html.Div(
                         "backgroundColor": "#194D62",
                         "color": "white"
                     },
-                    n_clicks=0, # Initialize number of clicks
+                    n_clicks=0,
                 )
             ]
         ),
@@ -232,11 +236,11 @@ def load_treatment_names(_):
     # Return data as options for dropdown
     return [{"label": row["treatment_name"], "value": row["treatment_id"]} for _, row in df.iterrows()]
 
-
 @app.callback(
     [
         Output('financial_transaction_id', 'data'),
-        Output('financial_transaction_deletediv', 'className')
+        Output('financial_transaction_deletediv', 'className'),
+        Output('financial_transaction_header', 'children')
     ],
     [Input('url', 'pathname')],
     [State('url', 'search')]
@@ -249,12 +253,13 @@ def financial_transaction_load(pathname, urlsearch):
         if create_mode == 'add':
             financial_transaction_id = 0
             financial_transaction_deletediv = 'd-none'
-            
+            header_text = "Add New Financial Transaction Record"
         else:
             financial_transaction_id = int(parse_qs(parsed.query).get('id', [0])[0])
-            financial_transaction_deletediv =''
+            financial_transaction_deletediv = ''
+            header_text = "Edit Financial Transaction Record"
         
-        return [financial_transaction_id, financial_transaction_deletediv]
+        return [financial_transaction_id, financial_transaction_deletediv, header_text]
     else:
         raise PreventUpdate
 
@@ -325,48 +330,3 @@ def financial_transaction_load(pathname, urlsearch):
     #     return 'success', 'Patient Profile Submitted successfully!', True
     # except Exception as e:
     #     return 'danger', f'Error Occurred: {e}', True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # dbc.Modal( # Modal = dialog box; feedback for successful saving.
-        #     [
-        #         dbc.ModalHeader(
-        #             html.H4('Save Success')
-        #         ),
-        #         dbc.ModalBody(
-        #             'Financial Transaction was successfully recorded!'
-        #         ),
-        #         dbc.ModalFooter(
-        #             dbc.Button(
-        #                 "Proceed",
-        #                 href='/financial_transaction_management' # Clicking this would lead to a change of pages
-        #             )
-        #         )
-        #     ],
-        #     centered=True,
-        #     id='new_financialtransaction_successmodal',
-        #     backdrop='static' # Dialog box does not go away if you click at the background
-        # )
-
-
