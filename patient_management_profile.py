@@ -5,7 +5,7 @@ from dash import dcc, html
 
 from dash import Input, Output, State
 from app import app
-from apps.dbconnect import getDataFromDB, modifyDB
+from dbconnect import getDataFromDB, modifyDB
 from dash.exceptions import PreventUpdate
 
 layout = html.Div(
