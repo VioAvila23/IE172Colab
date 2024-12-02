@@ -110,25 +110,19 @@ layout = dbc.Container([
     ]
 )
 def update_records_table(appointmentfilter, status_filter):
-    # Base SQL query
+    # Base SQL query with date and time formatting
     sql = """
     SELECT 
         appointment.appointment_id AS "Appointment ID",
         CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name",
         appointment.appointment_status AS "Appointment Status", 
-        appointment.appointment_time AS "Appointment Time", 
-        appointment.appointment_date AS "Appointment Date", 
+        TO_CHAR(appointment.appointment_date, 'DD, Month YYYY') AS "Appointment Date", 
+        TO_CHAR(appointment.appointment_time, 'HH12:MI AM') AS "Appointment Time",
         appointment.appointment_reason AS "Appointment Reason"
     FROM 
         appointment
     JOIN 
-        appointment_treatment ON appointment.appointment_id = appointment_treatment.appointment_id
-    JOIN 
         patient ON appointment.patient_id = patient.patient_id
-    JOIN 
-        payment ON payment.payment_id = appointment_treatment.payment_id
-    JOIN 
-        treatment ON appointment_treatment.treatment_id = treatment.treatment_id
     """
 
     # SQL conditions and values
@@ -156,18 +150,14 @@ def update_records_table(appointmentfilter, status_filter):
     if conditions:
         sql += " WHERE " + " AND ".join(conditions)
 
-    # Add GROUP BY and ORDER BY clauses
+    # Add ORDER BY clause
     sql += """
-        GROUP BY 
-            appointment.appointment_id, patient.patient_last_m, 
-            patient.patient_first_m, appointment.appointment_status, 
-            appointment.appointment_time, appointment.appointment_date, appointment.appointment_reason
         ORDER BY 
             appointment.appointment_id DESC
     """
 
     # Define the column names
-    col = ["Appointment ID", "Patient Name", "Appointment Status", "Appointment Time", "Appointment Date", "Appointment Reason"]
+    col = ["Appointment ID", "Patient Name", "Appointment Status", "Appointment Date", "Appointment Time", "Appointment Reason"]
 
     # Fetch the filtered data into a DataFrame
     df = getDataFromDB(sql, val, col)
@@ -178,13 +168,23 @@ def update_records_table(appointmentfilter, status_filter):
     # Adding action buttons for each row
     df['Action'] = [
         html.Div(
-            dbc.Button("Reschedule", color='warning', size='sm', 
-                       href=f'/appointments/appointment_management_profile?mode=edit&id={row["Appointment ID"]}'),
+            dbc.Button(
+                "Reschedule", 
+                color='warning', 
+                size='sm', 
+                href=f'/appointments/appointment_management_profile?mode=edit&id={row["Appointment ID"]}'
+            ),
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
 
+    # Limit columns for display but include the Action column
+    display_columns = ["Appointment ID", "Patient Name", "Appointment Status", "Appointment Date", "Appointment Time", "Appointment Reason", "Action"]
+
     # Create the table from the DataFrame
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+    table = dbc.Table.from_dataframe(
+        df[display_columns], 
+        striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'}
+    )
 
     return [table]
