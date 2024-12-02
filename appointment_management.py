@@ -72,9 +72,9 @@ layout = dbc.Container([
                     dcc.Dropdown(
                         id="status_filter",
                         options=[
-                            {"label": "Booked", "value": "Booked"},
+                            {"label": "Scheduled", "value": "Scheduled"},
                             {"label": "Pending", "value": "Pending"},
-                            {"label": "Complete", "value": "Complete"},
+                            {"label": "Completed", "value": "Completed"},
                         ],
                         placeholder="Select Appointment Status",
                         className="form-control",

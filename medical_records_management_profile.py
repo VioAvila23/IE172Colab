@@ -12,13 +12,7 @@ layout = html.Div(
         # Header and Back button
         dbc.Row(
             [
-                dbc.Col(
-                    html.H2(
-                        id="header_text",
-                        style={'font-size': '25px'}
-                    ),
-                    width="auto"
-                ),
+                dbc.Col(html.H2("Add New Medical Record", style={'font-size': '25px'}), width="auto"),
                 dbc.Col(
                     dbc.Button(
                         "Back",
@@ -175,7 +169,6 @@ layout = html.Div(
     [
         Output('medical_edit_id', 'data'),
         Output('patient_profile_delete', 'className'),
-        Output('header_text', 'children')
     ],
     [Input('url', 'pathname'),],
     [State('url', 'search'),]
@@ -189,15 +182,15 @@ def medical_result_load(pathname,urlsearch):
         if create_mode == 'add':
             medical_edit_id = 0
             patient_profile_delete = 'd-none'
-            header_text = "Add New Medical Record"
             
 
+        
         else:
             medical_edit_id = int(parse_qs(parsed.query).get('id', [0])[0])
             patient_profile_delete = ''
-            header_text = "Edit Medical Record"
+            
         
-        return [medical_edit_id, patient_profile_delete, header_text]
+        return [medical_edit_id, patient_profile_delete ]
     
     else:
         raise PreventUpdate

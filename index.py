@@ -10,6 +10,9 @@ from app import app
 from apps import commonmodules as cm
 from apps.patient_profile import patient_management, patient_management_profile
 from apps.medical_records import medical_records_management, medical_records_management_profile, medical_records_profile
+from apps.financial_transactions import financial_transaction, new_financial_transaction
+from apps.appointment import appointment_management, appointment_management_profile
+from apps.treatments import treatment_management, treatment_management_profile
 
 from apps import home
 
@@ -32,12 +35,13 @@ app.layout = html.Div(
      Output("nav-appointment", "style"),
      Output("nav-patient-profile", "style"),
      Output("nav-medical-records", "style"),
-     Output("nav-financial-transaction", "style")],
+     Output("nav-financial-transaction", "style"),
+     Output("nav-treatment", "style")],
     [Input("url", "pathname")]
 )
 def update_active_link_style(pathname):
     # Default all styles to non-active
-    styles = [navlink_style, navlink_style, navlink_style, navlink_style, navlink_style]
+    styles = [navlink_style, navlink_style, navlink_style, navlink_style, navlink_style,navlink_style]
     
     # Set active style based on URL path
     if pathname == "/home":
@@ -50,6 +54,8 @@ def update_active_link_style(pathname):
         styles[3] = navlink_active_style
     elif pathname == "/financial_transaction":
         styles[4] = navlink_active_style
+    elif pathname == "/treatment":
+        styles[5] = navlink_active_style
     
     return styles
 
@@ -63,7 +69,11 @@ def display_page_content(pathname):
     if pathname == '/' or pathname == '/home':
         return home.layout  # Assumes home.layout is defined in the `home` module
     elif pathname == '/appointment':
-        return html.Div("Appointment") # Placeholder for the Appointment page
+        return appointment_management.layout
+    
+    elif pathname == '/appointments/appointment_management_profile':
+        return appointment_management_profile.layout
+
     elif pathname == '/patient_profile':
         return patient_management.layout
     elif pathname == '/patient_profile/patient_management_profile':
@@ -75,7 +85,13 @@ def display_page_content(pathname):
     elif pathname == '/medical_records/medical_record_management_profile':
         return medical_records_management_profile.layout
     elif pathname == '/financial_transaction':
-        return html.Div("Financial Transac")  # Placeholder for Financial Transaction page
+        return financial_transaction.layout  # Placeholder for Financial Transaction page
+    elif pathname == '/financial_transaction_management/new_transaction':
+        return new_financial_transaction.layout
+    elif pathname == '/treatment':
+        return treatment_management.layout
+    elif pathname == '/treatment/treatment_management_profile':
+        return treatment_management_profile.layout
     else:
         # Display a 404 error message for unknown paths
         return html.Div("404 - Page not found", style={'color': 'red', 'font-size': '24px', 'text-align': 'center'})

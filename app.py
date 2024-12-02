@@ -17,7 +17,7 @@ app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 
 # Set app title that appears in your browser tab
-app.title = 'IE 172 Sample IS'
+app.title = 'Dental Studio Database'
 
 # These 2 lines reduce the logs on your terminal so you could debug better
 # when you encounter errors in app
