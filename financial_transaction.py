@@ -2,7 +2,7 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output
 import pandas as pd
-from apps.dbconnect import getDataFromDB
+from dbconnect import getDataFromDB
 from app import app
 from dash.exceptions import PreventUpdate
 
@@ -59,32 +59,33 @@ layout = dbc.Container([
     ),
 
     dbc.Row(
-        [
-            dbc.Col(
-                [
-                    html.Label(
-                        "Filter by Payment Status", 
-                        className="form-label", 
-                        style={"fontSize": "18px", "fontWeight": "bold"}
-                    ),
-                    dcc.Dropdown(
-                        id="status_filter",  # ID for dropdown filter
-                        options=[
-                            {"label": "Paid", "value": "Paid"},
-                            {"label": "Partially Paid", "value": "Partially Paid"},
-                            {"label": "Not Paid", "value": "Not Paid"},
-                        ],
-                        placeholder="Select Payment Status",
-                        className="form-control",
-                        style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                    ),
-                ],
-                md=8,
-            )
-        ],
-        className="mb-4",
-        align="center"
-    ),
+    [
+        dbc.Col(
+            [
+                html.Label(
+                    "Filter by Payment Status", 
+                    className="form-label", 
+                    style={"fontSize": "18px", "fontWeight": "bold"}
+                ),
+                dcc.Dropdown(
+                    id="status_filter",  # ID for dropdown filter
+                    options=[
+                        {"label": "Paid", "value": "Paid"},
+                        {"label": "Partially Paid", "value": "Partially Paid"},
+                        {"label": "Not Paid", "value": "Not Paid"},
+                    ],
+                    placeholder="Select Payment Status",
+                    className="form-control",
+                    style={"borderRadius": "20px", "fontSize": "18px"}  # Removed backgroundColor
+                ),
+            ],
+            md=8,
+        )
+    ],
+    className="mb-4",
+    align="center"
+),
+
 
     # Row for the table placeholder
     dbc.Row(
@@ -108,13 +109,13 @@ layout = dbc.Container([
     ]
 )
 def update_records_table(financial_transaction_filter, status_filter):
-    # Modified SQL query with columns in the desired order
+    # Updated SQL query with correct table joins and column selection
     sql = """
         SELECT 
             payment.payment_id AS "Transaction ID", 
             CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name", 
             treatment.treatment_m AS "Treatment Name",
-            payment.payment_date AS "Payment Date", 
+            TO_CHAR(payment.payment_date, 'DD, Month YYYY') AS "Payment Date", 
             payment.payment_amount AS "Payment Amount", 
             payment.payment_status AS "Payment Status", 
             payment.paid_amount AS "Paid Amount", 
@@ -122,68 +123,77 @@ def update_records_table(financial_transaction_filter, status_filter):
         FROM 
             payment
         JOIN 
-            appointment_treatment ON payment.payment_id = appointment_treatment.payment_id
+            appointment ON payment.payment_id = appointment.payment_id
         JOIN 
-            appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-        JOIN 
-            patient ON appointment.patient_id = patient.patient_id
+            appointment_treatment ON appointment.appointment_id = appointment_treatment.appointment_id
         JOIN 
             treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+        JOIN 
+            patient ON appointment.patient_id = patient.patient_id
     """
     val = []
 
-    # Constructing the WHERE clause based on search and dropdown filters
+    # Constructing the WHERE clause with filters
     filters = []
+
+    # Adding filters based on the input search
     if financial_transaction_filter:
-        # Check if the filter is numeric to search by payment_id
         if financial_transaction_filter.isdigit():
             filters.append("payment.payment_id = %s")
             val.append(int(financial_transaction_filter))
         else:
-            sql += """
-                WHERE 
-                patient.patient_last_m ILIKE %s OR 
-                patient.patient_first_m ILIKE %s OR 
-                patient.patient_middle_m ILIKE %s
-            """
+            filters.append("""
+                (patient.patient_last_m ILIKE %s OR 
+                 patient.patient_first_m ILIKE %s OR 
+                 patient.patient_middle_m ILIKE %s)
+            """)
             val.extend([f'%{financial_transaction_filter}%'] * 3)
-        
+
+    # Adding filters for payment status dropdown
     if status_filter:
         filters.append("payment.payment_status = %s")
         val.append(status_filter)
 
-    # Add WHERE clause if any filters are applied
+    # Append WHERE clause if filters are applied
     if filters:
         sql += " WHERE " + " AND ".join(filters)
 
-    # Add the GROUP BY and ORDER BY clauses
+    # Adding ORDER BY clause for transaction sorting
     sql += """
-        GROUP BY 
-        payment.payment_id, patient.patient_last_m, patient.patient_first_m, treatment.treatment_m, 
-        payment.payment_date, payment.payment_amount, payment.payment_status, payment.paid_amount, payment.remarks
         ORDER BY 
-        payment.payment_id
+            payment.payment_id
     """
 
-    # Define the column names in the desired order
+    # Column headers for the DataFrame
     col = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks"]
 
-    # Fetch the filtered data into a DataFrame
+    # Fetching the filtered data from the database
     df = getDataFromDB(sql, val, col)
 
+    # Handling empty DataFrame scenario
     if df.empty:
         return [html.Div("No records found.", className="text-center")]
 
-    # Generating edit buttons for each payment_transaction
+    # Adding "Edit" action button for each row
     df['Action'] = [
         html.Div(
-            dbc.Button("Edit", color='warning', size='sm', 
-                       href=f'/financial_transaction_management/new_transaction?mode=edit&id={row["Transaction ID"]}'),
+            dbc.Button(
+                "Edit", 
+                color='warning', 
+                size='sm', 
+                href=f'/financial_transaction_management/new_transaction?mode=edit&id={row["Transaction ID"]}'
+            ),
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
 
-    # Creating the updated table with centered text
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+    # Display only relevant columns with action button included
+    display_columns = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks", "Action"]
+
+    # Create and style the table from DataFrame
+    table = dbc.Table.from_dataframe(
+        df[display_columns], 
+        striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'}
+    )
 
     return [table]
