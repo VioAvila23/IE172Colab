@@ -1,4 +1,3 @@
-from urllib.parse import parse_qs, urlparse
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -6,10 +5,15 @@ from dash import Input, Output, State
 from app import app
 from dbconnect import getDataFromDB, modifyDB
 from dash.exceptions import PreventUpdate
+from dash.dependencies import MATCH, ALL
+from urllib.parse import parse_qs, urlparse
+
 
 layout = html.Div(
     [
         dcc.Store(id='financial_transaction_id', storage_type='memory', data=0),
+        dcc.Store(id='dropdown-counter', storage_type='memory', data=0),  # Store the number of dynamic dropdowns
+
         # Header with dynamic title based on mode
         dbc.Row(
             [
@@ -61,22 +65,20 @@ layout = html.Div(
                     className='mb-3'
                 ),
 
-                # Treatment Name
-                dbc.Row(
-                    [
-                        dbc.Label("Treatment Name", width=2),
-                        dbc.Col(
-                            dcc.Dropdown(
-                                id='treatment_name_dropdown',
-                                placeholder='Select Treatment Name',
-                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                            ),
-                            width=8,
-                        ),
-                    ],
-                    className='mb-3'
-                ),
-                
+                # Dynamic Dropdowns container (start without the first dropdown)
+                html.Div(id='dropdown-container', children=[]),
+
+                # Button to add new dropdowns
+                dbc.Button("Add Treatment Done", id="add-dropdown-button",color="primary", 
+                    className="mt-3",
+                    style={
+                        "borderRadius": "20px",
+                        "fontWeight": "bold",
+                        "fontSize": "18px",
+                        "backgroundColor": "#194D62",
+                        "color": "white"
+                    }, n_clicks=0),
+
                 # Payment Date
                 dbc.Row(
                     [
@@ -118,11 +120,9 @@ layout = html.Div(
                         dbc.Col(
                             dbc.Select(
                                 id='financialtrasaction_status',
-                                options=[
-                                {'label': 'Paid', 'value': 'Paid'},
-                                {'label': 'Partially Paid', 'value': 'Partially_Paid'},
-                                {'label': 'Not Paid', 'value': 'Not_Paid'}
-                                ],
+                                options=[{'label': 'Paid', 'value': 'Paid'},
+                                         {'label': 'Partially Paid', 'value': 'Partially_Paid'},
+                                         {'label': 'Not Paid', 'value': 'Not_Paid'}],
                                 placeholder='Payment Status',
                                 className="form-control",
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
@@ -167,9 +167,7 @@ layout = html.Div(
                         ),
                     ],
                     className="mb-3"
-                ),
-
-                # Mark for Deletion
+                ), # Mark for Deletion
                 html.Div(
                     [
                         dbc.Checklist(
@@ -195,7 +193,7 @@ layout = html.Div(
                         "color": "white"
                     },
                     n_clicks=0,
-                )
+                ),
             ]
         ),
         dbc.Alert(id='submit_alert', is_open=False)
@@ -203,6 +201,7 @@ layout = html.Div(
     className="container mt-4"
 )
 
+#Display Patient Names
 @app.callback(
     Output('patient_name_dropdown', 'options'),
     Input('patient_name_dropdown', 'id')
@@ -220,22 +219,62 @@ def load_patient_names(_):
     return [{"label": row["patient_name"], "value": row["patient_id"]} for _, row in df.iterrows()]
 
 
+# Callback to handle dynamic dropdowns and display the count and IDs
 @app.callback(
-    Output('treatment_name_dropdown', 'options'),
-    Input('treatment_name_dropdown', 'id')
+    [Output('dropdown-container', 'children'),
+     Output('dropdown-counter', 'data')],  # Remove output for dropdown info
+    [Input('add-dropdown-button', 'n_clicks')],
+    [State('dropdown-container', 'children'),
+     State('dropdown-counter', 'data')]  # Get the current count of dropdowns
 )
-def load_treatment_names(_):
+def add_dropdown(n_clicks, current_children, dropdown_count):
+    # Prevent update if no click
+    if n_clicks == 0:
+        raise PreventUpdate
+
+    # Increment the dropdown count
+    dropdown_count += 1
+
     # SQL query to fetch treatment names
     sql = """
         SELECT treatment_id, treatment_m AS treatment_name
         FROM treatment
     """
-    # Fetch data from DB with empty values and columns lists
+    # Fetch data from DB
     df = getDataFromDB(sql, [], ["treatment_id", "treatment_name"])
-    
-    # Return data as options for dropdown
-    return [{"label": row["treatment_name"], "value": row["treatment_id"]} for _, row in df.iterrows()]
 
+    # Create options for the dropdown based on fetched treatment names
+    treatment_options = [
+        {"label": row["treatment_name"], "value": row["treatment_id"]}
+        for _, row in df.iterrows()
+    ]
+
+    # Create a label for the treatment dropdown (Treatment Name 1, Treatment Name 2, etc.)
+    treatment_label = f"Treatment Name {dropdown_count}"
+
+    # Create a new row for the dropdown with its label and the actual dropdown
+    new_row = dbc.Row(
+        [
+            dbc.Label(treatment_label, width=2),
+            dbc.Col(
+                dcc.Dropdown(
+                    id={'type': 'dynamic-dropdown', 'index': dropdown_count},  # Unique ID for each dropdown
+                    options=treatment_options,  # Use the fetched options
+                    placeholder="Select Treatment Name",
+                    style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                ),
+                width=8,
+            ),
+        ],
+        className='mb-3'
+    )
+
+    # Append the new row to the current children
+    current_children.append(new_row)
+
+    return current_children, dropdown_count
+
+#Display Dynamic Headers
 @app.callback(
     [
         Output('financial_transaction_id', 'data'),
@@ -263,70 +302,7 @@ def financial_transaction_load(pathname, urlsearch):
     else:
         raise PreventUpdate
 
-# @app.callback(
-#     [Output('submit_alert', 'color'),
-#      Output('submit_alert', 'children'),
-#      Output('submit_alert', 'is_open')],
-#     [Input('submit_button', 'n_clicks')],
-#     [State('patient_name_dropdown', 'value'),
-#      State('treatment_name_dropdown', 'value'),
-#      State('financialtransaction_date', 'value'),
-#      State('financialtransaction_paymentamount', 'value'),
-#      State('financialtrasaction_status', 'value'),
-#      State('financialtransaction_paidamount', 'value'),
-#      State('financialtransaction_remarks', 'value'),
-#      State('url', 'search'),
-#      State('financial_transaction_id', 'data')]
-# )
-# def submit_form(n_clicks, patient_name_dropdown, treatment_name_dropdown, financialtransaction_date, 
-#                 financialtransaction_paymentamount, financialtrasaction_status, financialtransaction_paidamount,
-#                 financialtransaction_remarks, urlsearch, financial_transaction_id):
-    
-#     ctx = dash.callback_context
-#     if not ctx.triggered or not n_clicks:
-#         raise PreventUpdate
 
-#     parsed = urlparse(urlsearch)
-#     create_mode = parse_qs(parsed.query).get('mode', [''])[0]
 
-#     # Check for missing values in the required fields
-#     if not all([patient_name_dropdown, treatment_name_dropdown, financialtransaction_date,
-#                 financialtransaction_paymentamount, financialtrasaction_status, financialtransaction_paidamount,
-#                 financialtransaction_remarks]):
-#         return 'danger', 'Please fill in all required fields.', True
 
-    # # SQL to insert or update the database
-    # if create_mode == 'add':
-    #     sql = """INSERT INTO patient (patient_last_m, patient_first_m, patient_middle_m, patient_bd, age,
-    #             sex, patient_cn, patient_email, street, barangay, city, postal_code, account_creation_date)
-    #             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE);"""
-        
-    #     values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-    #               email_address, street, barangay, city, postal_code]
-    
-    # elif create_mode == 'edit':
-    #     sql = """UPDATE patient
-    #             SET patient_last_m = %s,
-    #                 patient_first_m = %s,
-    #                 patient_middle_m = %s,
-    #                 patient_bd = %s,
-    #                 age = %s,
-    #                 sex = %s,
-    #                 patient_cn = %s,
-    #                 patient_email = %s,
-    #                 street = %s,
-    #                 barangay = %s,
-    #                 city = %s,
-    #                 postal_code = %s
-    #             WHERE patient_id = %s;"""
-        
-    #     values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-    #               email_address, street, barangay, city, postal_code, patientprofile_id]
-    # else:
-    #     raise PreventUpdate
 
-    # try:
-    #     modifyDB(sql, values)
-    #     return 'success', 'Patient Profile Submitted successfully!', True
-    # except Exception as e:
-    #     return 'danger', f'Error Occurred: {e}', True
