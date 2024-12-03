@@ -13,7 +13,13 @@ layout = html.Div(
         dcc.Store(id='appointmentprofile_id', storage_type='memory', data=0),
         dbc.Row(
             [
-                dbc.Col(html.H2("Schedule New Appointment", style={'font-size': '25px'}), width="auto"),
+                dbc.Col(
+                    html.H2(
+                        id="appointment_header",
+                        style={'font-size': '25px'}
+                    ),
+                    width="auto"
+                ),
                 dbc.Col(
                     dbc.Button(
                         "Back",
@@ -39,58 +45,20 @@ layout = html.Div(
         # Form Layout
         dbc.Form(
             [
-                # Last Name
+                # Patient Name Dropdown (Dynamic)
                 dbc.Row(
                     [
-                        dbc.Label("Last Name", width=2),
+                        dbc.Label("Patient Name", width=2),
                         dbc.Col(
-                            dbc.Input(
-                                type='text',
-                                id='last_name',
-                                placeholder='Enter Last Name',
-                                className="form-control",
+                            dcc.Dropdown(
+                                id='patient_name_dropdown_appointment',
+                                placeholder='Select Patient Name',
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                             ),
-                            width=8
+                            width=8,
                         ),
                     ],
-                    className="mb-3"
-                ),
-                
-                # First Name
-                dbc.Row(
-                    [
-                        dbc.Label("First Name", width=2),
-                        dbc.Col(
-                            dbc.Input(
-                                type='text',
-                                id='first_name',
-                                placeholder='Enter First Name',
-                                className="form-control",
-                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                            ),
-                            width=8
-                        ),
-                    ],
-                    className="mb-3"
-                ),
-                
-                # Middle Name
-                dbc.Row(
-                    [
-                        dbc.Label("Middle Name", width=2),
-                        dbc.Col(
-                            dbc.Input(
-                                type='text',
-                                id='middle_name',
-                                placeholder='Enter Middle Name',
-                                className="form-control",
-                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                            ),
-                            width=8
-                        ),
-                    ],
-                    className="mb-3"
+                    className='mb-3'
                 ),
                 
                 # Appointment Date
@@ -153,9 +121,9 @@ layout = html.Div(
                             dbc.Select(
                                 id='appointment_status',
                                 options=[
-                                    {'label': 'Booked', 'value': 'Booked'},
+                                    {'label': 'Scheduled', 'value': 'Scheduled'},
                                     {'label': 'Pending', 'value': 'Pending'},
-                                    {'label': 'Complete', 'value': 'Complete'},
+                                    {'label': 'Completed', 'value': 'Completed'},
                                 ],
                                 placeholder='Select Status',
                                 className="form-control",
@@ -183,6 +151,7 @@ layout = html.Div(
                     "Submit", 
                     color="primary", 
                     className="mt-3",
+                    id = 'appointmentsubmit_button',
                     style={
                         "borderRadius": "20px",
                         "fontWeight": "bold",
@@ -193,12 +162,43 @@ layout = html.Div(
                 )
             ]
         ),
-        dbc.Alert(id='submit_alert', is_open=False)
+        dbc.Alert(id='appointmentsubmit_alert', is_open=False)
     ],
     className="container mt-4"
 )
 
+# Callback to update the header dynamically
+@app.callback(
+    Output('appointment_header', 'children'),
+    Input('appointmentprofile_id', 'data')
+)
+def update_header(appointment_id):
+    if appointment_id == 0:
+        return "Schedule New Appointment"
+    else:
+        return "Reschedule Appointment"
 
+
+# Display Patient Names in Appointment Dropdown
+@app.callback(
+    Output('patient_name_dropdown_appointment', 'options'),
+    Input('patient_name_dropdown_appointment', 'id')
+)
+def load_patient_names_appointment(_):
+    # SQL query to fetch patient names
+    sql = """
+        SELECT patient_id, CONCAT(patient_last_m, ', ', patient_first_m) AS patient_name
+        FROM patient
+    """
+    # Fetch data from DB with empty values and columns lists
+    df = getDataFromDB(sql, [], ["patient_id", "patient_name"])
+    
+    # Convert the fetched data into options for the dropdown
+   
+    
+    return [{'label': row['patient_name'], 'value': row['patient_id']} for _, row in df.iterrows()]
+
+#Hides Mark as Delete During Add Mode
 @app.callback(
     [
         Output('appointmentprofile_id', 'data'),
@@ -225,5 +225,100 @@ def appointment_result_load(pathname,urlsearch):
 
     else:
          raise PreventUpdate
+#Adds Data
+@app.callback(
+    [Output('appointmentsubmit_alert', 'color'),
+     Output('appointmentsubmit_alert', 'children'),
+     Output('appointmentsubmit_alert', 'is_open')],
+    [Input('appointmentsubmit_button', 'n_clicks')],
+    [State('patient_name_dropdown_appointment', 'value'),
+     State('appointment_date', 'value'),
+     State('appointment_time', 'value'),
+     State('appointment_reason', 'value'),
+     State('appointment_status', 'value'),
+     State('url', 'search'),
+     State('appointmentprofile_id', 'data')]
+)
 
+def submit_appointment_form(n_clicks, patient_name, appointment_date, appointment_time, appointment_reason, 
+                            appointment_status, urlsearch, appointmentprofile_id):
+
+    ctx = dash.callback_context
+    if not ctx.triggered or not n_clicks:
+        raise PreventUpdate
+    
+    parsed = urlparse(urlsearch)
+    create_mode = parse_qs(parsed.query).get('mode', [''])[0]
+
+    if not all([patient_name, appointment_date, appointment_time, appointment_reason, appointment_status]):
+        return 'danger', 'Please fill in all required fields.', True
+    
+    # SQL to insert or update the database
+    if create_mode == 'add':
+        # Insert a new record into the appointment table
+        sql = """INSERT INTO appointment (patient_id, appointment_date, appointment_time, appointment_reason, appointment_status)
+                 VALUES (%s, %s, %s, %s, %s) RETURNING appointment_id;"""
+        values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status]
+
+    
+
+    elif create_mode == 'edit':
+        sql = """UPDATE appointment
+                 SET patient_id = %s,
+                     appointment_date = %s,
+                     appointment_time = %s,
+                     appointment_reason = %s,
+                     appointment_status = %s
+                 WHERE appointment_id = %s;"""
+        values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status, appointmentprofile_id]
+    
+    else: 
+        raise PreventUpdate
+    
+    try:
+        modifyDB(sql, values)
+        return 'success', 'Appointment Submitted successfully!', True
+    except Exception as e:
+        return 'danger', f'Error Occurred: {e}', True
+
+# Prepopulate data for the appointment form, including patient name
+# Prepopulate data for the appointment form, including patient name and appointment status
+@app.callback(
+    [Output('patient_name_dropdown_appointment', 'value'),
+     Output('appointment_date', 'value'),
+     Output('appointment_time', 'value'),
+     Output('appointment_reason', 'value'),
+     Output('appointment_status', 'value')],  # Added appointment_status to outputs
+    [Input('appointmentprofile_id', 'modified_timestamp')],
+    [State('appointmentprofile_id', 'data')]
+)
+def appointment_profile_populate(timestamp, appointmentprofile_id):
+    if appointmentprofile_id > 0:
+        # Query to fetch appointment details, patient name, and status
+        sql = """SELECT p.patient_id, p.patient_first_m, p.patient_last_m, 
+                         a.appointment_date, a.appointment_time, a.appointment_reason, a.appointment_status
+                 FROM Appointment a
+                 JOIN Patient p ON a.patient_id = p.patient_id
+                 WHERE a.appointment_id = %s"""
+        values = [appointmentprofile_id]
+        col = ['patient_id', 'patient_first_m', 'patient_last_m', 
+               'appointment_date', 'appointment_time', 'appointment_reason', 'appointment_status']
+
+        # Fetch the data from the database
+        df = getDataFromDB(sql, values, col)
+
+        # Prepare the patient name and ID
+        patient_name = f"{df['patient_first_m'][0]} {df['patient_last_m'][0]}"
+        patient_id = df['patient_id'][0]
+
+        # Extract other appointment details
+        appointment_date = df['appointment_date'][0]
+        appointment_time = df['appointment_time'][0]
+        appointment_reason = df['appointment_reason'][0]
+        appointment_status = df['appointment_status'][0]
+
+        # Return the preselected patient ID and other appointment details
+        return patient_id, appointment_date, appointment_time, appointment_reason, appointment_status
+    else:
+        raise PreventUpdate
 
