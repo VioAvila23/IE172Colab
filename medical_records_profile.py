@@ -8,6 +8,7 @@ from dash.exceptions import PreventUpdate
 
 layout = dbc.Container([
     dcc.Store(id='medicalprofile_id', storage_type='memory', data=0),  # Store to hold patient ID
+    
 
     # Row for patient information display and action buttons
     dbc.Row(
@@ -149,7 +150,7 @@ def update_add_record_button_href(medicalprofile_id):
 )
 def display_medical_records(medicalprofile_id):
     sql = """SELECT 
-        p.patient_id,
+        mr.medical_result_id,
         a.appointment_date,
         t.treatment_m,
         mr.medical_condition,
@@ -172,7 +173,7 @@ def display_medical_records(medicalprofile_id):
     """
     val = [medicalprofile_id]
 
-    col = ['PatientID', 'Date', 'Treatment Done', 'Condition', 'Diagnosis', 'Prescription']
+    col = ["Medical Result ID","Date", "Treatment Done", "Condition", "Diagnosis", "Prescription"]
 
     df = getDataFromDB(sql, val, col)
 
@@ -183,12 +184,17 @@ def display_medical_records(medicalprofile_id):
     df['Action'] = [
         html.Div(
             dbc.Button("Edit", color='warning', size='sm', 
-                       href=f'/medical_records/medical_record_management_profile?mode=edit&id={medicalprofile_id}'),
+                       href=f'/medical_records/medical_record_management_profile?mode=edit&id={row["Medical Result ID"]}'
+                       ),
             className='text-center'
-        ) for _ in range(len(df))
+        ) for idx, row in df.iterrows() 
     ]
+    display_columns = ["Medical Result ID","Date", "Treatment Done", "Condition", "Diagnosis", "Prescription", "Action"]
 
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+    table = dbc.Table.from_dataframe(
+        df[display_columns], 
+        striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'}
+    )
 
     return [table]
 
