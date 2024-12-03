@@ -68,16 +68,41 @@ layout = html.Div(
                 # Dynamic Dropdowns container (start without the first dropdown)
                 html.Div(id='dropdown-container', children=[]),
 
-                # Button to add new dropdowns
-                dbc.Button("Add Treatment Done", id="add-dropdown-button",color="primary", 
-                    className="mt-3",
-                    style={
-                        "borderRadius": "20px",
-                        "fontWeight": "bold",
-                        "fontSize": "18px",
-                        "backgroundColor": "#194D62",
-                        "color": "white"
-                    }, n_clicks=0),
+                # Row for buttons to add and remove treatments
+                dbc.Row(
+                    [
+                        # Add Treatment Button
+                        dbc.Col(
+                            dbc.Button("Add Treatment Done", id="add-dropdown-button", color="primary", 
+                                className="mt-3",
+                                style={
+                                    "borderRadius": "20px",
+                                    "fontWeight": "bold",
+                                    "fontSize": "18px",
+                                    "backgroundColor": "#194D62",
+                                    "color": "white"
+                                }, n_clicks=0),
+                            width="auto",  # Make the button width auto to fit content
+                            className="me-2"  # Add margin-right to create space between the buttons
+                        ),
+                        
+                        # Remove Last Treatment Button
+                        dbc.Col(
+                            dbc.Button("Remove Last Treatment", id="remove-dropdown-button", color="danger", 
+                                className="mt-3",
+                                style={
+                                    "borderRadius": "20px",
+                                    "fontWeight": "bold",
+                                    "fontSize": "18px",
+                                    "backgroundColor": "#c43f3f",
+                                    "color": "white"
+                                }, n_clicks=0),
+                            width="auto",  # Same width as the other button
+                        ),
+                    ],
+                    justify="start",  # Align the buttons to the left
+                    className="mt-3"  # Add margin top to add spacing from the fields above
+                ),
 
                 # Payment Date
                 dbc.Row(
@@ -92,7 +117,7 @@ layout = html.Div(
                             width=8, 
                         ),
                     ],
-                    className='mb-3'
+                    className='mb-3 mt-4'
                 ),
 
                 # Payment Amount
@@ -201,6 +226,7 @@ layout = html.Div(
     className="container mt-4"
 )
 
+
 #Display Patient Names
 @app.callback(
     Output('patient_name_dropdown', 'options'),
@@ -217,62 +243,70 @@ def load_patient_names(_):
     
     # Return data as options for dropdown
     return [{"label": row["patient_name"], "value": row["patient_id"]} for _, row in df.iterrows()]
-
-
-# Callback to handle dynamic dropdowns and display the count and IDs
 @app.callback(
     [Output('dropdown-container', 'children'),
-     Output('dropdown-counter', 'data')],  # Remove output for dropdown info
-    [Input('add-dropdown-button', 'n_clicks')],
+     Output('dropdown-counter', 'data')],
+    [Input('add-dropdown-button', 'n_clicks'),
+     Input('remove-dropdown-button', 'n_clicks')],
     [State('dropdown-container', 'children'),
      State('dropdown-counter', 'data')]  # Get the current count of dropdowns
 )
-def add_dropdown(n_clicks, current_children, dropdown_count):
-    # Prevent update if no click
-    if n_clicks == 0:
+def update_dropdowns(add_n_clicks, remove_n_clicks, current_children, dropdown_count):
+    ctx = dash.callback_context
+    if not ctx.triggered:
         raise PreventUpdate
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    # If Add button is clicked
+    if button_id == 'add-dropdown-button':
+        dropdown_count += 1
 
-    # Increment the dropdown count
-    dropdown_count += 1
+        # SQL query to fetch treatment names
+        sql = """
+            SELECT treatment_id, treatment_m AS treatment_name
+            FROM treatment
+        """
+        # Fetch data from DB
+        df = getDataFromDB(sql, [], ["treatment_id", "treatment_name"])
 
-    # SQL query to fetch treatment names
-    sql = """
-        SELECT treatment_id, treatment_m AS treatment_name
-        FROM treatment
-    """
-    # Fetch data from DB
-    df = getDataFromDB(sql, [], ["treatment_id", "treatment_name"])
+        # Create options for the dropdown based on fetched treatment names
+        treatment_options = [
+            {"label": row["treatment_name"], "value": row["treatment_id"]}
+            for _, row in df.iterrows()
+        ]
 
-    # Create options for the dropdown based on fetched treatment names
-    treatment_options = [
-        {"label": row["treatment_name"], "value": row["treatment_id"]}
-        for _, row in df.iterrows()
-    ]
+        # Create a label for the treatment dropdown (Treatment Name 1, Treatment Name 2, etc.)
+        treatment_label = f"Treatment Name {dropdown_count}"
 
-    # Create a label for the treatment dropdown (Treatment Name 1, Treatment Name 2, etc.)
-    treatment_label = f"Treatment Name {dropdown_count}"
-
-    # Create a new row for the dropdown with its label and the actual dropdown
-    new_row = dbc.Row(
-        [
-            dbc.Label(treatment_label, width=2),
-            dbc.Col(
-                dcc.Dropdown(
-                    id={'type': 'dynamic-dropdown', 'index': dropdown_count},  # Unique ID for each dropdown
-                    options=treatment_options,  # Use the fetched options
-                    placeholder="Select Treatment Name",
-                    style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+        # Create a new row for the dropdown with its label and the actual dropdown
+        new_row = dbc.Row(
+            [
+                dbc.Label(treatment_label, width=2),
+                dbc.Col(
+                    dcc.Dropdown(
+                        id={'type': 'dynamic-dropdown', 'index': dropdown_count},  # Unique ID for each dropdown
+                        options=treatment_options,  # Use the fetched options
+                        placeholder="Select Treatment Name",
+                        style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                    ),
+                    width=8,
                 ),
-                width=8,
-            ),
-        ],
-        className='mb-3'
-    )
+            ],
+            className='mb-3'
+        )
 
-    # Append the new row to the current children
-    current_children.append(new_row)
+        # Append the new row to the current children
+        current_children.append(new_row)
+
+    # If Remove button is clicked
+    elif button_id == 'remove-dropdown-button' and dropdown_count > 0:
+        dropdown_count -= 1
+        # Remove the last dropdown from the container
+        current_children.pop()
 
     return current_children, dropdown_count
+
 
 #Display Dynamic Headers
 @app.callback(
