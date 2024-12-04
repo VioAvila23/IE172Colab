@@ -150,26 +150,28 @@ def update_add_record_button_href(medicalprofile_id):
 )
 def display_medical_records(medicalprofile_id):
     sql = """SELECT 
-        mr.medical_result_id,
-        a.appointment_date,
-        t.treatment_m,
-        mr.medical_condition,
-        mr.medical_diagnosis,
-        mr.medical_prescription
-    FROM 
-        Patient p
-    INNER JOIN 
-        Appointment a ON p.patient_id = a.patient_id
-    INNER JOIN 
-        Appointment_treatment at ON a.appointment_id = at.appointment_id
-    INNER JOIN 
-        Treatment t ON at.treatment_id = t.treatment_id
-    INNER JOIN 
-        Medical_result mr ON a.medical_result_id = mr.medical_result_id
-    WHERE 
-        p.patient_id = %s
-    ORDER BY 
-        a.appointment_date DESC;
+            mr.medical_result_id,
+            TO_CHAR(a.appointment_date, 'DD, Month YYYY') AS formatted_date,
+            STRING_AGG(t.treatment_m, ', ') AS treatment,
+            mr.medical_condition,
+            mr.medical_diagnosis,
+            mr.medical_prescription
+        FROM 
+            Patient p
+        INNER JOIN 
+            Appointment a ON p.patient_id = a.patient_id
+        INNER JOIN 
+            Appointment_treatment at ON a.appointment_id = at.appointment_id
+        INNER JOIN 
+            Treatment t ON at.treatment_id = t.treatment_id
+        INNER JOIN 
+            Medical_result mr ON a.medical_result_id = mr.medical_result_id
+        WHERE 
+            p.patient_id = %s AND treatment_delete = false
+        GROUP BY 
+            mr.medical_result_id, a.appointment_date, mr.medical_condition, mr.medical_diagnosis, mr.medical_prescription
+        ORDER BY 
+            a.appointment_date DESC;
     """
     val = [medicalprofile_id]
 
