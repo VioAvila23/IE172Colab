@@ -49,6 +49,7 @@ navbar = dbc.Navbar(
                     dbc.NavLink("Medical Records", href="/medical_records", id="nav-medical-records", style=navlink_style),
                     dbc.NavLink("Financial Transaction", href="/financial_transaction", id="nav-financial-transaction", style=navlink_style),
                     dbc.NavLink("Treatment", href="/treatment", id="nav-treatment", style=navlink_style)
+                    dbc.NavLink("Log Out", href="/login", id="nav-logout", style={'backgroundColor': '#194D62','color': 'white','padding': '10px 20px','borderRadius': '5px','textAlign': 'center','fontWeight': 'bold','textDecoration': 'none',}),
                 ],
                 className="ms-auto",
                 navbar=True,
