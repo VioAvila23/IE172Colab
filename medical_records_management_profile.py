@@ -428,11 +428,15 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
     parsed = urlparse(urlsearch)
     create_mode = parse_qs(parsed.query).get('mode', [''])[0]
 
-    if not all([condition, diagnosis, prescription, treatment_1, qty_1]):
+    
+
+    if not all([condition, diagnosis, prescription, treatment_1, qty_1,treatment_2,qty_2, treatment_3,qty_3, treatment_4,qty_4,treatment_5, qty_5]):
         return 'danger', 'Please fill in all required fields.', True
 
     try:
         if create_mode == 'add':
+            
+            
             # SQL to insert a new medical result
             sql = """INSERT INTO medical_result (medical_condition, medical_diagnosis, medical_prescription)
                      VALUES (%s, %s, %s)"""
@@ -461,21 +465,14 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 values_treatment_1 = (appointment, treatment_1, qty_1)
                 modifyDB(sql_treatment_1, values_treatment_1)
             
-            if treatment_1 is not None and qty_1 is not None:
-                sql_treatment_2 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
-                                    VALUES (%s, %s, %s);"""
-                values_treatment_2 = (appointment, treatment_1, qty_1)
+            
             # Treatment 2
             if treatment_2 is not None and qty_2 is not None:
                 sql_treatment_2 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
                                     VALUES (%s, %s, %s);"""
                 values_treatment_2 = (appointment, treatment_2, qty_2)
                 modifyDB(sql_treatment_2, values_treatment_2)
-            elif treatment_2 is None or qty_2 is None:
-                sql_treatment_2 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
-                                    VALUES (%s, %s, %s);"""
-                values_treatment_2 = (appointment, 6, 0)
-                modifyDB(sql_treatment_2, values_treatment_2)
+            
 
             # Treatment 3
             if treatment_3 is not None and qty_3 is not None:
@@ -483,23 +480,14 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                                     VALUES (%s, %s, %s);"""
                 values_treatment_3 = (appointment, treatment_3, qty_3)
                 modifyDB(sql_treatment_3, values_treatment_3)
-            elif treatment_3 is None or qty_3 is None:
-                sql_treatment_3 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
-                                    VALUES (%s, %s, %s);"""
-                values_treatment_3 = (appointment, 6, 0)
-                modifyDB(sql_treatment_3, values_treatment_3)
-
+            
             # Treatment 4
             if treatment_4 is not None and qty_4 is not None:
                 sql_treatment_4 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
                                     VALUES (%s, %s, %s);"""
                 values_treatment_4 = (appointment, treatment_4, qty_4)
                 modifyDB(sql_treatment_4, values_treatment_4)
-            elif treatment_4 is None or qty_4 is None:
-                sql_treatment_4 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
-                                    VALUES (%s, %s, %s);"""
-                values_treatment_4 = (appointment, 6, 0)
-                modifyDB(sql_treatment_4, values_treatment_4)
+            
 
             # Treatment 5
             if treatment_5 is not None and qty_5 is not None:
@@ -507,11 +495,7 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                                     VALUES (%s, %s, %s);"""
                 values_treatment_5 = (appointment, treatment_5, qty_5)
                 modifyDB(sql_treatment_5, values_treatment_5)
-            elif treatment_5 is None or qty_5 is None:
-                sql_treatment_5 = """INSERT INTO Appointment_treatment (appointment_id, treatment_id, quantity)
-                                    VALUES (%s, %s, %s);"""
-                values_treatment_5 = (appointment, 6, 0)
-                modifyDB(sql_treatment_5, values_treatment_5)
+            
                 
         elif create_mode == 'edit':
             # SQL to update the medical result (Conditon to prescription)
@@ -561,14 +545,7 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 values_treatment_1 = (treatment_1, qty_1,appointment_treatment_id_1)
                 modifyDB(sql_treatment_1, values_treatment_1)
             
-            elif treatment_1 is None or qty_1 is None:
-                sql_treatment_2 = """UPDATE Appointment_treatment
-                                      SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_2 = (6,0,appointment_treatment_id_1)
-                modifyDB(sql_treatment_2, values_treatment_2)
+           
             # Treatment 2
             if treatment_2 and qty_2:
                 sql_treatment_2 = """UPDATE Appointment_treatment
@@ -579,14 +556,7 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 values_treatment_2 = (treatment_2, qty_2, appointment_treatment_id_2)
                 modifyDB(sql_treatment_2, values_treatment_2)
 
-            elif treatment_2 is None or qty_2 is None:
-                sql_treatment_2 = """UPDATE Appointment_treatment
-                                    SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                    WHERE appointment_treatment_id = %s;"""
-                values_treatment_2 = (6, 0, appointment_treatment_id_2)
-                modifyDB(sql_treatment_2, values_treatment_2)
+            
 
             # Treatment 3
             if treatment_3 and qty_3:
@@ -598,14 +568,7 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 values_treatment_3 = (treatment_3, qty_3, appointment_treatment_id_3)
                 modifyDB(sql_treatment_3, values_treatment_3)
 
-            elif treatment_3 is None or qty_3 is None:
-                sql_treatment_3 = """UPDATE Appointment_treatment
-                                    SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                    WHERE appointment_treatment_id = %s;"""
-                values_treatment_3 = (6, 0, appointment_treatment_id_3)
-                modifyDB(sql_treatment_3, values_treatment_3)
+            
 
             # Treatment 4
             if treatment_4 and qty_4:
@@ -617,14 +580,7 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 values_treatment_4 = (treatment_4, qty_4, appointment_treatment_id_4)
                 modifyDB(sql_treatment_4, values_treatment_4)
 
-            elif treatment_4 is None or qty_4 is None:
-                sql_treatment_4 = """UPDATE Appointment_treatment
-                                    SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                    WHERE appointment_treatment_id = %s;"""
-                values_treatment_4 = (6, 0, appointment_treatment_id_4)
-                modifyDB(sql_treatment_4, values_treatment_4)
+            
 
             # Treatment 5
             if treatment_5 and qty_5:
@@ -635,20 +591,6 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                                         WHERE appointment_treatment_id = %s;"""
                 values_treatment_5 = (treatment_5, qty_5, appointment_treatment_id_5)
                 modifyDB(sql_treatment_5, values_treatment_5)
-
-            elif treatment_5 is None or qty_5 is None:
-                sql_treatment_5 = """UPDATE Appointment_treatment
-                                    SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                    WHERE appointment_treatment_id = %s;"""
-                values_treatment_5 = (6, 0, appointment_treatment_id_5)
-                modifyDB(sql_treatment_5, values_treatment_5)
-
-                
-
-            
-            
             
         return 'success', 'Medical Result Submitted successfully!', True
         
