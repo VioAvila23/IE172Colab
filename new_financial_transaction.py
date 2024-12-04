@@ -9,10 +9,10 @@ from dash.dependencies import MATCH, ALL
 from urllib.parse import parse_qs, urlparse
 
 
-layout = html.Div(
+layout = dbc.Container(
     [
         dcc.Store(id='financial_transaction_id', storage_type='memory', data=0),
-        dcc.Store(id='dropdown-counter', storage_type='memory', data=0),  # Store the number of dynamic dropdowns
+        dcc.Store(id='financial_transaction_edit_id', storage_type='memory', data=0),
 
         # Header with dynamic title based on mode
         dbc.Row(
@@ -43,81 +43,77 @@ layout = html.Div(
             align="center",
             className="mb-4"
         ),
-        
+
         html.Hr(),
 
         # Form Layout
         dbc.Form(
             [
-                # Patient Name
+                # Select Recently Completed Appointment with Generate Button
                 dbc.Row(
                     [
-                        dbc.Label("Patient Name", width=2),
+                        dbc.Label(
+                            "Select Recently Completed Appointment: ",
+                            style={"fontSize": "20px", "fontWeight": "bold"}
+                        ),
                         dbc.Col(
                             dcc.Dropdown(
-                                id='patient_name_dropdown',
-                                placeholder='Select Patient Name',
+                                id='medical_appointment',
+                                placeholder='Select Appointment',
+                                className="form-control",
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                             ),
-                            width=8,
+                            width=8
                         ),
-                    ],
-                    className='mb-3'
-                ),
-
-                # Dynamic Dropdowns container (start without the first dropdown)
-                html.Div(id='dropdown-container', children=[]),
-
-                # Row for buttons to add and remove treatments
-                dbc.Row(
-                    [
-                        # Add Treatment Button
                         dbc.Col(
-                            dbc.Button("Add Treatment Done", id="add-dropdown-button", color="primary", 
-                                className="mt-3",
+                            dbc.Button(
+                                "Generate Transaction",
+                                id='generate_transaction_button',
+                                color="primary",
+                                className="mt-0",
                                 style={
                                     "borderRadius": "20px",
                                     "fontWeight": "bold",
                                     "fontSize": "18px",
                                     "backgroundColor": "#194D62",
-                                    "color": "white"
-                                }, n_clicks=0),
-                            width="auto",  # Make the button width auto to fit content
-                            className="me-2"  # Add margin-right to create space between the buttons
-                        ),
-                        
-                        # Remove Last Treatment Button
-                        dbc.Col(
-                            dbc.Button("Remove Last Treatment", id="remove-dropdown-button", color="danger", 
-                                className="mt-3",
-                                style={
-                                    "borderRadius": "20px",
-                                    "fontWeight": "bold",
-                                    "fontSize": "18px",
-                                    "backgroundColor": "#c43f3f",
-                                    "color": "white"
-                                }, n_clicks=0),
-                            width="auto",  # Same width as the other button
-                        ),
+                                    "color": "white",
+                                    "marginLeft": "10px"
+                                },
+                                n_clicks=0
+                            ),
+                            width="auto"
+                        )
                     ],
-                    justify="start",  # Align the buttons to the left
-                    className="mt-3"  # Add margin top to add spacing from the fields above
+                    className="mb-3",
+                    id='appointment_dropdown_row'
                 ),
 
-                # Payment Date
+                # Row for the medical records table placeholder
+                dbc.Row(
+                    dbc.Col(
+                        html.Div(
+                            id="financial_record_table",  # ID for medical records table placeholder
+                            className="text-center",
+                            style={"fontSize": "18px", "color": "#666", "padding": "50px", "height": "300px"}  # Adjust height here
+                        ),
+                        width=12,
+                        style={"border": "2px solid #194D62", "borderRadius": "10px", "padding": "20px", "marginBottom": "20px"}
+                    )
+                ),
+
+                # Total Amount to Be Paid
                 dbc.Row(
                     [
-                        dbc.Label("Payment Date", width=2),
+                        dbc.Label("Payment Total: ", width=2),
                         dbc.Col(
-                            dbc.Input(
-                                type='date',
-                                id='financialtransaction_date',
-                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
+                            html.Div(
+                                id='payment_total',
+                                style={"fontSize": "18px", "fontWeight": "bold"}
                             ),
-                            width=8, 
-                        ),
+                            width=8
+                        )
                     ],
-                    className='mb-3 mt-4'
+                    className="mb-3"
                 ),
 
                 # Payment Amount
@@ -145,10 +141,12 @@ layout = html.Div(
                         dbc.Col(
                             dbc.Select(
                                 id='financialtrasaction_status',
-                                options=[{'label': 'Paid', 'value': 'Paid'},
-                                         {'label': 'Partially Paid', 'value': 'Partially_Paid'},
-                                         {'label': 'Not Paid', 'value': 'Not_Paid'}],
-                                placeholder='Payment Status',
+                                options=[
+                                    {'label': 'Paid', 'value': 'Paid'},
+                                    {'label': 'Partially Paid', 'value': 'Partially_Paid'},
+                                    {'label': 'Not Paid', 'value': 'Not_Paid'}
+                                ],
+                                placeholder='Select Payment Status',
                                 className="form-control",
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                             ),
@@ -156,24 +154,6 @@ layout = html.Div(
                         ),
                     ],
                     className='mb-3'
-                ),
-
-                # Paid Amount
-                dbc.Row(
-                    [
-                        dbc.Label("Paid Amount", width=2),
-                        dbc.Col(
-                            dbc.Input(
-                                type='text',
-                                id='financialtransaction_paidamount',
-                                placeholder='Enter Paid Amount',
-                                className="form-control",
-                                style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                            ),
-                            width=8
-                        ),
-                    ],
-                    className="mb-3"
                 ),
 
                 # Remarks
@@ -184,7 +164,7 @@ layout = html.Div(
                             dbc.Input(
                                 type='text',
                                 id='financialtransaction_remarks',
-                                placeholder='Remarks',
+                                placeholder='Enter Remarks',
                                 className="form-control",
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                             ),
@@ -192,7 +172,9 @@ layout = html.Div(
                         ),
                     ],
                     className="mb-3"
-                ), # Mark for Deletion
+                ),
+
+                # Mark for Deletion
                 html.Div(
                     [
                         dbc.Checklist(
@@ -201,14 +183,15 @@ layout = html.Div(
                             value=[]
                         )
                     ],
-                    id='financial_transaction_deletediv'
+                    id='financial_transaction_deletediv',
+                    className="mb-3"
                 ),
 
                 # Submit Button
                 dbc.Button(
                     "Submit",
                     id='submit_button',
-                    color="primary", 
+                    color="primary",
                     className="mt-3",
                     style={
                         "borderRadius": "20px",
@@ -221,91 +204,13 @@ layout = html.Div(
                 ),
             ]
         ),
+
+        # Alert for submission
         dbc.Alert(id='submit_alert', is_open=False)
     ],
-    className="container mt-4"
+    fluid=True,  # Use dbc.Container's fluid attribute
+    style={"padding": "20px", "backgroundColor": "#f8f9fa"}
 )
-
-
-#Display Patient Names
-@app.callback(
-    Output('patient_name_dropdown', 'options'),
-    Input('patient_name_dropdown', 'id')
-)
-def load_patient_names(_):
-    # SQL query to fetch patient names
-    sql = """
-        SELECT patient_id, CONCAT(patient_last_m, ', ', patient_first_m) AS patient_name
-        FROM patient
-    """
-    # Fetch data from DB with empty values and columns lists
-    df = getDataFromDB(sql, [], ["patient_id", "patient_name"])
-    
-    # Return data as options for dropdown
-    return [{"label": row["patient_name"], "value": row["patient_id"]} for _, row in df.iterrows()]
-@app.callback(
-    [Output('dropdown-container', 'children'),
-     Output('dropdown-counter', 'data')],
-    [Input('add-dropdown-button', 'n_clicks'),
-     Input('remove-dropdown-button', 'n_clicks')],
-    [State('dropdown-container', 'children'),
-     State('dropdown-counter', 'data')]  # Get the current count of dropdowns
-)
-def update_dropdowns(add_n_clicks, remove_n_clicks, current_children, dropdown_count):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        raise PreventUpdate
-    
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    # If Add button is clicked
-    if button_id == 'add-dropdown-button':
-        dropdown_count += 1
-
-        # SQL query to fetch treatment names
-        sql = """
-            SELECT treatment_id, treatment_m AS treatment_name
-            FROM treatment
-        """
-        # Fetch data from DB
-        df = getDataFromDB(sql, [], ["treatment_id", "treatment_name"])
-
-        # Create options for the dropdown based on fetched treatment names
-        treatment_options = [
-            {"label": row["treatment_name"], "value": row["treatment_id"]}
-            for _, row in df.iterrows()
-        ]
-
-        # Create a label for the treatment dropdown (Treatment Name 1, Treatment Name 2, etc.)
-        treatment_label = f"Treatment Name {dropdown_count}"
-
-        # Create a new row for the dropdown with its label and the actual dropdown
-        new_row = dbc.Row(
-            [
-                dbc.Label(treatment_label, width=2),
-                dbc.Col(
-                    dcc.Dropdown(
-                        id={'type': 'dynamic-dropdown', 'index': dropdown_count},  # Unique ID for each dropdown
-                        options=treatment_options,  # Use the fetched options
-                        placeholder="Select Treatment Name",
-                        style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
-                    ),
-                    width=8,
-                ),
-            ],
-            className='mb-3'
-        )
-
-        # Append the new row to the current children
-        current_children.append(new_row)
-
-    # If Remove button is clicked
-    elif button_id == 'remove-dropdown-button' and dropdown_count > 0:
-        dropdown_count -= 1
-        # Remove the last dropdown from the container
-        current_children.pop()
-
-    return current_children, dropdown_count
 
 
 #Display Dynamic Headers
@@ -336,6 +241,110 @@ def financial_transaction_load(pathname, urlsearch):
     else:
         raise PreventUpdate
 
+#Populates the Completed Appointment in the Dropdown
+@app.callback(
+    [Output('medical_appointment', 'options')],
+    [Input('financial_transaction_id', 'data')]  # Use the patient ID from the first callback
+)
+def load_all_completed_appointment(financial_transaction_id):
+    if financial_transaction_id >= 0:
+        sql = """
+            SELECT 
+                appointment.appointment_id,
+                CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS patient_name
+            FROM 
+                appointment
+            JOIN 
+                patient ON appointment.patient_id = patient.patient_id
+            WHERE 
+                appointment.medical_result_id IS NOT NULL
+                AND (appointment.payment_id IS NULL OR appointment.payment_id = %s)
+                AND appointment.appointment_delete = false
+                AND patient.patient_delete = false;
+        """
+        # Fetch data from the database
+        df = getDataFromDB(sql, [0], ["appointment_id", "patient_name"])
+        
+        # Generate options for the dropdown
+        options = [
+            {'label': f"Appointment {row['appointment_id']} : {row['patient_name']}", 'value': row['appointment_id']}
+            for _, row in df.iterrows()
+        ]
+        return [options]
+    else:
+        # Return default message if no financial_transaction_id is provided
+        return [[{'label': 'No appointments available', 'value': None}]]
+
+#Generate Transaction Table
+
+@app.callback(
+    [Output('financial_record_table', 'children'),
+     Output('payment_total','children')],
+    [Input('generate_transaction_button', 'n_clicks')],
+    [State('medical_appointment', 'value')]
+)
+
+def generate_transactions(n_clicks,choice):
+
+   #Generates Receipt
+    sql = """
+    SELECT 
+    
+    treatment.treatment_m AS treatment_name,
+    appointment_treatment.quantity,
+    treatment.treatment_price,
+    appointment.medical_result_id
+    FROM 
+    appointment_treatment
+    JOIN 
+    appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+    JOIN 
+    treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+    WHERE 
+    appointment.appointment_id = %s
+    AND appointment.appointment_delete = false
+    AND appointment_treatment.appointment_treatment_delete = false
+    AND treatment.treatment_delete = false;
+    """
+    values = [choice]
+
+    col = ["Treatment Name", "Quantity", "Price", "Medical Result ID"]
+    df = getDataFromDB(sql,values,col)
+    df['Action'] = [
+        html.Div(
+            dbc.Button("Edit", color='warning', size='sm', 
+                       href=f'/medical_records/medical_record_management_profile?mode=edit&id={row["Medical Result ID"]}'
+                       ),
+            className='text-center'
+        ) for idx, row in df.iterrows() 
+    ]
+    display_columns = ["Treatment Name", "Quantity", "Price", "Action"]
+    
+    table = dbc.Table.from_dataframe(df[display_columns], striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+
+    #Generates Total Payment
+
+    sql2 = """SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
+            FROM 
+            appointment_treatment
+            JOIN 
+            appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+            JOIN 
+            treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+            WHERE 
+            appointment.appointment_id = %s
+            AND appointment.appointment_delete = false
+            AND appointment_treatment.appointment_treatment_delete = false
+            AND treatment.treatment_delete = false;"""
+
+    values2 = [choice]
+
+    col2 = ["Total_Payment"]
+    df2 = getDataFromDB(sql2, values2, col2)
+
+    total_payment = df2.iloc[0]['Total_Payment']
+
+    return table, total_payment
 
 
 
