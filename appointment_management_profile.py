@@ -281,6 +281,8 @@ def submit_appointment_form(n_clicks, patient_name, appointment_date, appointmen
     except Exception as e:
         return 'danger', f'Error Occurred: {e}', True
 
+
+
 # Prepopulate data for the appointment form, including patient name
 # Prepopulate data for the appointment form, including patient name and appointment status
 @app.callback(

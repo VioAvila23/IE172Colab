@@ -288,7 +288,7 @@ layout = html.Div(
     ],
     className="container mt-4"
 )
-
+#Hides Mark as Deleted During Add Mode
 @app.callback(
     [
         Output('patientprofile_id', 'data'),
@@ -313,7 +313,7 @@ def patient_profile_load(pathname, urlsearch):
         return [patientprofile_id, deletediv]
     else:
         raise PreventUpdate
-
+#Dynamic Header
 @app.callback(
     Output('patient_profile_header', 'children'),
     Input('url', 'search')
@@ -326,7 +326,7 @@ def update_header(urlsearch):
         return "Add New Patient Profile"
     else:
         return "Edit Patient Profile"
-
+#This inserts into database
 @app.callback(
     [Output('submit_alert', 'color'),
      Output('submit_alert', 'children'),
@@ -397,6 +397,7 @@ def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, se
     except Exception as e:
         return 'danger', f'Error Occurred: {e}', True
 
+#This prepopulates during edit mode
 @app.callback(
     [Output('last_name', 'value'),
     Output('first_name', 'value'),

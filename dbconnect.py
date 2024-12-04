@@ -6,7 +6,7 @@ import psycopg2
 def getdblocation():
     db = psycopg2.connect(
         host='localhost', 
-        database='DentalStudio2', 
+        database='DentalStudio5', 
         user='postgres', 
         port=5433, 
         password='1234', 

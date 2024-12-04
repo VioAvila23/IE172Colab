@@ -89,6 +89,8 @@ def update_records_table(treatmentfilter):
         t.treatment_price AS "Price"
         FROM 
         Treatment t
+        WHERE
+        t.treatment_delete = false
     """
     val = []
 
@@ -96,11 +98,11 @@ def update_records_table(treatmentfilter):
     if treatmentfilter:
         # Check if the filter is numeric to search by treatment_id
         if treatmentfilter.isdigit():
-            sql += " WHERE t.treatment_id = %s"
+            sql += " AND t.treatment_id = %s"
             val.append(int(treatmentfilter))
         else:
             sql += """
-                WHERE 
+                AND 
                 t.treatment_m ILIKE %s OR 
                 t.treatment_description ILIKE %s
             """
