@@ -111,26 +111,28 @@ layout = dbc.Container([
 def update_records_table(financial_transaction_filter, status_filter):
     # Updated SQL query with correct table joins and column selection
     sql = """
-        SELECT 
-            payment.payment_id AS "Transaction ID", 
-            CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name", 
-            treatment.treatment_m AS "Treatment Name",
-            TO_CHAR(payment.payment_date, 'DD, Month YYYY') AS "Payment Date", 
-            payment.payment_amount AS "Payment Amount", 
-            payment.payment_status AS "Payment Status", 
-            payment.paid_amount AS "Paid Amount", 
-            payment.remarks AS "Remarks"
-        FROM 
-            payment
-        JOIN 
-            appointment ON payment.payment_id = appointment.payment_id
-        JOIN 
-            appointment_treatment ON appointment.appointment_id = appointment_treatment.appointment_id
-        JOIN 
-            treatment ON appointment_treatment.treatment_id = treatment.treatment_id
-        JOIN 
-            patient ON appointment.patient_id = patient.patient_id
-    """
+    SELECT 
+        payment.payment_id AS "Transaction ID", 
+        CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name", 
+        STRING_AGG(treatment.treatment_m, ', ') AS "Treatment Name", -- Concatenate treatments into one string
+        TO_CHAR(payment.payment_date, 'DD, Month YYYY') AS "Payment Date", 
+        payment.payment_amount AS "Payment Amount", 
+        payment.payment_status AS "Payment Status", 
+        payment.paid_amount AS "Paid Amount", 
+        payment.remarks AS "Remarks"
+    FROM 
+        payment
+    JOIN 
+        appointment ON payment.payment_id = appointment.payment_id
+    JOIN 
+        appointment_treatment ON appointment.appointment_id = appointment_treatment.appointment_id
+    JOIN 
+        treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+    JOIN 
+        patient ON appointment.patient_id = patient.patient_id
+    WHERE 
+        treatment.treatment_delete = false -- Exclude deleted treatments
+"""
     val = []
 
     # Constructing the WHERE clause with filters
@@ -144,8 +146,8 @@ def update_records_table(financial_transaction_filter, status_filter):
         else:
             filters.append("""
                 (patient.patient_last_m ILIKE %s OR 
-                 patient.patient_first_m ILIKE %s OR 
-                 patient.patient_middle_m ILIKE %s)
+                patient.patient_first_m ILIKE %s OR 
+                patient.patient_middle_m ILIKE %s)
             """)
             val.extend([f'%{financial_transaction_filter}%'] * 3)
 
@@ -156,10 +158,19 @@ def update_records_table(financial_transaction_filter, status_filter):
 
     # Append WHERE clause if filters are applied
     if filters:
-        sql += " WHERE " + " AND ".join(filters)
+        sql += " AND " + " AND ".join(filters)
 
-    # Adding ORDER BY clause for transaction sorting
+    # Adding GROUP BY and ORDER BY clauses
     sql += """
+        GROUP BY 
+            payment.payment_id, 
+            patient.patient_last_m, 
+            patient.patient_first_m, 
+            payment.payment_date, 
+            payment.payment_amount, 
+            payment.payment_status, 
+            payment.paid_amount, 
+            payment.remarks
         ORDER BY 
             payment.payment_id
     """
