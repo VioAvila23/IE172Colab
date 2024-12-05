@@ -197,9 +197,21 @@ def update_records_table(financial_transaction_filter, status_filter):
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
+    df['Receipt'] = [
+    html.Div(
+        dbc.Button(
+            "Generate", 
+            size='sm', 
+            href=f'/financial_transaction/financial_generate?mode=view&id={row["Transaction ID"]}',
+            style={'backgroundColor': 'blue', 'color': 'white'}  # Blue background, white text
+        ),
+        className='text-center'
+    ) for idx, row in df.iterrows()
+]
+
 
     # Display only relevant columns with action button included
-    display_columns = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks", "Action"]
+    display_columns = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks", "Action", 'Receipt']
 
     # Create and style the table from DataFrame
     table = dbc.Table.from_dataframe(

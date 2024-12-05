@@ -278,7 +278,7 @@ layout = html.Div(
     ],
     className="container mt-4"
 )
-#removes dropdown during edit mode
+
 
 # Callback to toggle appointment dropdown visibility based on mode
 @app.callback(
@@ -723,3 +723,6 @@ def populate_medical_record(timestamp,medicalresult_edit_id):
         return condition, diagnosis, prescription,treatment_name_id1, quantity_1,treatment_name_id2, quantity_2,treatment_name_id3, quantity_3,treatment_name_id4, quantity_4,treatment_name_id5, quantity_5
     else:
         raise PreventUpdate
+
+#This checks for changes constantly:
+

@@ -88,7 +88,7 @@ def update_records_table(patientfilter):
         p.age as "Age",
         p.patient_cn as "Patient Number",
         p.patient_email as "Email Address",
-        MAX(a.appointment_date) AS "Last Visit"
+        MAX(CASE WHEN a.appointment_status = 'Completed' THEN a.appointment_date ELSE NULL END) AS "Last Visit"
         FROM 
         Patient p
         LEFT JOIN 

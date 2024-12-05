@@ -122,6 +122,18 @@ def update_records_table(patientfilter):
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
+    df['Medical Record'] = [
+    html.Div(
+        dbc.Button(
+            "Generate", 
+            size='sm', 
+            href=f'/medical_records/medical_record_generate?mode=view&id={row["Patient ID"]}',
+            style={'backgroundColor': 'blue', 'color': 'white'}  # Blue background, white text
+        ),
+        className='text-center'
+    ) for idx, row in df.iterrows()
+]
+
 
     # Creating the updated table with centered text
     table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
