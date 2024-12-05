@@ -115,27 +115,28 @@ def update_records_table(patientfilter):
         return [html.Div("No records found.", className="text-center")]
 
     # Generating view buttons for each patient
-    df['View Medical Record'] = [
+    df['Edit Medical Record'] = [
         html.Div(
             dbc.Button("View", color='warning', size='sm', 
                        href=f'/medical_records/medical_record_profile?mode=view&id={row["Patient ID"]}'),
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
-    df['Medical Record'] = [
+    df['View Medical Record'] = [
     html.Div(
         dbc.Button(
             "Generate", 
             size='sm', 
-            href=f'/medical_records/medical_record_generate?mode=view&id={row["Patient ID"]}',
+            href=f'/medical_records/medical_record_generate?mode=generate&id={row["Patient ID"]}',
             style={'backgroundColor': 'blue', 'color': 'white'}  # Blue background, white text
         ),
         className='text-center'
     ) for idx, row in df.iterrows()
 ]
 
+    display_columns = ['Patient Name','Edit Medical Record', 'View Medical Record']
 
     # Creating the updated table with centered text
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+    table = dbc.Table.from_dataframe(df[display_columns], striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
 
     return [table]

@@ -10,11 +10,12 @@ from dash.exceptions import PreventUpdate
 from app import app
 from apps import commonmodules as cm
 from apps.patient_profile import patient_management, patient_management_profile
-from apps.medical_records import medical_records_management, medical_records_management_profile, medical_records_profile
-from apps.financial_transactions import financial_transaction, new_financial_transaction
+from apps.medical_records import medical_records_management, medical_records_management_profile, medical_records_profile,medical_Records_Generate
+from apps.financial_transactions import financial_transaction, new_financial_transaction,financial_generate
 from apps.appointment import appointment_management, appointment_management_profile
 from apps.treatments import treatment_management, treatment_management_profile
-from apps import dbconnect as db
+from apps import performance
+import dbconnect as db
 from apps import log
 from apps import signup
 from apps import home
@@ -39,11 +40,13 @@ app.layout = html.Div(
      Output("nav-patient-profile", "style"),
      Output("nav-medical-records", "style"),
      Output("nav-financial-transaction", "style"),
-     Output("nav-treatment", "style")],
+     Output("nav-treatment", "style"),
+     Output("nav-Clinic-Insights","style")
+     ],
     [Input("url", "pathname")]
 )
 def update_active_link_style(pathname):
-    styles = [navlink_style] * 6  # Default styles
+    styles = [navlink_style] * 7  # Default styles
 
     if pathname == "/home":
         styles[0] = navlink_active_style
@@ -57,6 +60,8 @@ def update_active_link_style(pathname):
         styles[4] = navlink_active_style
     elif pathname == "/treatment":
         styles[5] = navlink_active_style
+    elif pathname == "/performance":
+        styles[6] = navlink_active_style
 
     return styles
 
@@ -64,7 +69,8 @@ def update_active_link_style(pathname):
 @app.callback(
     [Output('navbar-container', 'children'),
      Output('page_content', 'children')],
-    Input('url', 'pathname')
+    Input('url', 'pathname'),
+    
 )
 def display_page_content(pathname):
     # Hide navbar for login page
@@ -94,6 +100,12 @@ def display_page_content(pathname):
         return cm.navbar, new_financial_transaction.layout
     elif pathname == '/treatment':
         return cm.navbar, treatment_management.layout
+    elif pathname == '/medical_records/medical_record_generate':
+        return cm.navbar, medical_Records_Generate.layout
+    elif pathname == '/financial_transaction/financial_generate':
+        return cm.navbar, financial_generate.layout
+    elif pathname == '/performance':
+        return cm.navbar, performance.layout
     elif pathname == '/treatment/treatment_management_profile':
         return cm.navbar, treatment_management_profile.layout
     else:

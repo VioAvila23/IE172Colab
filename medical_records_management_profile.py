@@ -18,7 +18,7 @@ layout = html.Div(
         # Header and Back button
         dbc.Row(
             [
-                dbc.Col(html.H2("Add New Medical Record", style={'font-size': '25px'}), width="auto"),
+                dbc.Col(html.H2(id='medical_record_header',style={'font-size': '25px'}), width="auto"),
                 dbc.Col(
                     dbc.Button(
                         "Back",
@@ -724,5 +724,18 @@ def populate_medical_record(timestamp,medicalresult_edit_id):
     else:
         raise PreventUpdate
 
-#This checks for changes constantly:
+#Dynamic Header
+@app.callback(
+    Output('medical_record_header', 'children'),
+    Input('url', 'search')
+)
+def update_header(urlsearch):
+    parsed = urlparse(urlsearch)
+    create_mode = parse_qs(parsed.query).get('mode', [''])[0]
+    if create_mode == 'edit':
+        return "Edit Medical Record"
+    elif create_mode == 'add':
+        return "Add New Medical Record"
+    else:
+        return "Medical Record Management"
 

@@ -6,7 +6,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from app import app
-from apps import dbconnect as db
+import dbconnect as db
 
 layout = html.Div(
     style={

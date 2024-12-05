@@ -202,7 +202,7 @@ def update_records_table(financial_transaction_filter, status_filter):
         dbc.Button(
             "Generate", 
             size='sm', 
-            href=f'/financial_transaction/financial_generate?mode=view&id={row["Transaction ID"]}',
+            href=f'/financial_transaction/financial_generate?mode=generate&id={row["Transaction ID"]}',
             style={'backgroundColor': 'blue', 'color': 'white'}  # Blue background, white text
         ),
         className='text-center'

@@ -198,11 +198,21 @@ layout = dbc.Container(
             ],
             className="p-3 border rounded bg-light shadow-sm mt-4",
         ),
+        # Back Button
+        html.Div(
+            dbc.Button(
+                "Back to Medical Records",
+                href="/medical_records",
+                color="primary",
+                className="mt-3",
+                style={"width": "200px"},
+            ),
+            className="text-center",
+        ),
     ],
     fluid=True,
     style={"padding": "20px"},
 )
-
 # Callback to populate patient information fields
 @app.callback(
     [

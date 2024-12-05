@@ -82,17 +82,18 @@ layout = dbc.Container([
 def update_records_table(patientfilter):
     # Base SQL query for the Patient table
     sql = """
-        SELECT 
-        p.patient_id,
-        CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
-        p.age as "Age",
-        p.patient_cn as "Patient Number",
-        p.patient_email as "Email Address",
-        MAX(CASE WHEN a.appointment_status = 'Completed' THEN a.appointment_date ELSE NULL END) AS "Last Visit"
+       SELECT 
+    p.patient_id,
+    CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
+    p.age AS "Age",
+    p.patient_cn AS "Patient Contact Number",
+    p.patient_email AS "Patient Email Address",
+    MAX(CASE WHEN a.appointment_status = 'Completed' THEN TO_CHAR(a.appointment_date, 'DD, Month, YYYY') ELSE NULL END) AS "Last Visit"
         FROM 
-        Patient p
-        LEFT JOIN 
-        Appointment a ON p.patient_id = a.patient_id
+     Patient p
+    LEFT JOIN 
+    Appointment a ON p.patient_id = a.patient_id
+
     """
     val = []
 
@@ -136,8 +137,8 @@ def update_records_table(patientfilter):
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
-
+    display_columns = ["Patient Name", "Age", "Patient Contact Number", "Patient Email Address", "Last Visit","Action"]
     # Creating the updated table with centered text
-    table = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
+    table = dbc.Table.from_dataframe(df[display_columns], striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
 
     return [table]

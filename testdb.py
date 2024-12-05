@@ -2,21 +2,18 @@ import dbconnect as db
 from dbconnect import getDataFromDB, modifyDB
 
 # Get the appointment Date and Time
-sql_appointment = """SELECT TO_CHAR(appointment_date, 'DD, Month, YYYY') AS appointment_date, 
-                        TO_CHAR(appointment_time, 'HH12:MI AM') AS appointment_time
-                     FROM Appointment
-                     WHERE medical_result_id = %s"""
-value_appointment = [7]
-col = ['appointment_date', 'appointment_time']
-
-df = getDataFromDB(sql_appointment, value_appointment, col)
-
-# Extract Date and Time
-appointment_date = df['appointment_date'][0]
-apointment_time = df['appointment_time'][0]
-
-# Print Date and Time
-x = (f"{appointment_date} {apointment_time}")
-
-if __name__ == '__main__':
-    print(x)
+sql = """
+        SELECT 
+            p.payment_id, 
+            p.payment_status, 
+            TO_CHAR(p.payment_date, 'DD, Month YYYY') AS formatted_date, 
+            CONCAT(pt.patient_first_m, ' ', pt.patient_last_m) AS patient_name
+        FROM Payment p
+        JOIN Appointment a ON p.payment_id = a.payment_id
+        JOIN Patient pt ON a.patient_id = pt.patient_id
+        WHERE p.payment_id = %s AND p.payment_delete = false
+    """
+val = [6]
+col = ["Transaction ID", "Payment Status", "Payment Date", "Patient Name"]
+df = getDataFromDB(sql, val, col)
+print(df)
