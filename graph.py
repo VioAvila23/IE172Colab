@@ -6,7 +6,6 @@ import plotly.express as px
 from apps.dbconnect import getDataFromDB
 from app import app
 
-# Layout definition
 layout = html.Div(
     style={
         'backgroundColor': '#FFF',
@@ -19,7 +18,7 @@ layout = html.Div(
     children=[
         dbc.Container(
             [
-                # Section for filter and buttons
+                # Section for filters and buttons
                 dbc.Row(
                     dbc.Col(
                         html.Div(
@@ -45,6 +44,20 @@ layout = html.Div(
                                             style={"marginRight": "10px"}
                                         ),
                                         dbc.Col(
+                                            dcc.Dropdown(
+                                                id="treatment-name-filter",
+                                                options=[],  # Populated dynamically
+                                                placeholder="Select Treatment",
+                                                style={
+                                                    "width": "100%",
+                                                    "borderRadius": "8px",
+                                                    "padding": "10px"
+                                                }
+                                            ),
+                                            width=3,
+                                            style={"marginRight": "10px"}
+                                        ),
+                                        dbc.Col(
                                             dbc.Button(
                                                 "Patients per Month",
                                                 id="btn-patients-month",
@@ -57,7 +70,7 @@ layout = html.Div(
                                                     'borderRadius': '12px'
                                                 }
                                             ),
-                                            width=3,
+                                            width=2,
                                             style={'marginRight': '10px'}
                                         ),
                                         dbc.Col(
@@ -72,7 +85,7 @@ layout = html.Div(
                                                     'borderRadius': '12px',
                                                 }
                                             ),
-                                            width=3
+                                            width=2
                                         ),
                                     ],
                                     justify="center",
@@ -105,15 +118,15 @@ layout = html.Div(
                                     id="patients_per_month_graph",
                                     style={
                                         'height': '60vh',
-                                        'margin': 'auto',  # Center horizontally
+                                        'margin': 'auto',
                                         'padding': '10px'
                                     },
                                 ),
                                 width=6,
                                 style={
                                     'display': 'flex',
-                                    'justifyContent': 'center',  # Center horizontally
-                                    'alignItems': 'center'  # Center vertically
+                                    'justifyContent': 'center',
+                                    'alignItems': 'center'
                                 }
                             ),
                             dbc.Col(
@@ -121,15 +134,15 @@ layout = html.Div(
                                     id="treatments_per_month_graph",
                                     style={
                                         'height': '60vh',
-                                        'margin': 'auto',  # Center horizontally
+                                        'margin': 'auto',
                                         'padding': '10px'
                                     },
                                 ),
                                 width=6,
                                 style={
                                     'display': 'flex',
-                                    'justifyContent': 'center',  # Center horizontally
-                                    'alignItems': 'center'  # Center vertically
+                                    'justifyContent': 'center',
+                                    'alignItems': 'center'
                                 }
                             ),
                         ],
@@ -137,7 +150,7 @@ layout = html.Div(
                             'margin': '30px',
                             'width': '100%',
                             'display': 'flex',
-                            'justifyContent': 'center'  # Center the entire row
+                            'justifyContent': 'center'
                         }
                     )
             ],
@@ -147,36 +160,43 @@ layout = html.Div(
     ]
 )
 
-# Callback to update the table and graph based on the button clicked
+@app.callback(
+    Output('treatment-name-filter', 'options'),
+    Input('year-filter', 'value')
+)
+def populate_treatment_names(selected_year):
+    year_filter_condition = f"WHERE EXTRACT(YEAR FROM appointment_date) = {selected_year}" if selected_year else ""
+    treatments_sql = f"""
+    SELECT DISTINCT t.treatment_m AS TreatmentName
+    FROM Treatment t
+    INNER JOIN Appointment_treatment at ON t.treatment_id = at.treatment_id
+    INNER JOIN Appointment a ON at.appointment_id = a.appointment_id
+    WHERE NOT t.treatment_delete 
+      AND NOT at.appointment_treatment_delete
+      AND NOT a.appointment_delete
+      {year_filter_condition};
+    """
+    treatments_data = getDataFromDB(treatments_sql, [], ["TreatmentName"])
+    return [{"label": name, "value": name} for name in treatments_data["TreatmentName"]]
+
+
 @app.callback(
     [Output('patients_per_month_graph', 'figure'),
      Output('treatments_per_month_graph', 'figure')],
     [Input('btn-patients-month', 'n_clicks'),
      Input('btn-treatments-month', 'n_clicks'),
-     Input('year-filter', 'value')]
+     Input('year-filter', 'value'),
+     Input('treatment-name-filter', 'value')]
 )
-def update_clinic_graphs(btn_patients_month, btn_treatments_month, selected_year):
-    # Determine the context of the button clicked
+def update_clinic_graphs(btn_patients_month, btn_treatments_month, selected_year, selected_treatment):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = None
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    year_filter_condition = f"AND EXTRACT(YEAR FROM appointment_date) = {selected_year}" if selected_year else ""
-
-    patients_sql = f"""
-    SELECT 
-        TO_CHAR(appointment_date, 'YYYY-MM') AS Month,
-        COUNT(DISTINCT patient_id) AS PatientCount
-    FROM Appointment
-    WHERE 
-        appointment_status = 'Completed' 
-        AND NOT appointment_delete
-        {year_filter_condition}
-    GROUP BY TO_CHAR(appointment_date, 'YYYY-MM')
-    ORDER BY TO_CHAR(appointment_date, 'YYYY-MM');
-    """
+    year_filter_condition = f"AND EXTRACT(YEAR FROM a.appointment_date) = {selected_year}" if selected_year else ""
+    treatment_filter_condition = f"AND t.treatment_m = '{selected_treatment}'" if selected_treatment else ""
 
     treatments_sql = f"""
     SELECT 
@@ -192,31 +212,19 @@ def update_clinic_graphs(btn_patients_month, btn_treatments_month, selected_year
         AND NOT at.appointment_treatment_delete 
         AND NOT t.treatment_delete
         {year_filter_condition}
+        {treatment_filter_condition}
     GROUP BY TO_CHAR(a.appointment_date, 'YYYY-MM'), t.treatment_m
     ORDER BY TO_CHAR(a.appointment_date, 'YYYY-MM'), t.treatment_m;
     """
 
-    patients_data = getDataFromDB(patients_sql, [], ["Month", "PatientCount"])
-    treatments_data = getDataFromDB(treatments_sql, [], ["Month", "Treatment Name", "TreatmentCount"])
+    treatments_data = getDataFromDB(treatments_sql, [], ["Month", "TreatmentName", "TreatmentCount"])
+    fig_treatments = px.bar(
+        treatments_data,
+        x="Month",
+        y="TreatmentCount",
+        color="TreatmentName",
+        title="Treatments per Month",
+        labels={"Month": "Month", "TreatmentCount": "Number of Treatments", "TreatmentName": "Treatment Type"}
+    ) if button_id == "btn-treatments-month" else {}
 
-    fig_patients, fig_treatments = {}, {}
-
-    if button_id == "btn-patients-month":
-        fig_patients = px.bar(
-            patients_data,
-            x="Month",
-            y="PatientCount",
-            title="Patients per Month",
-            labels={"Month": "Month", "PatientCount": "Number of Patients"}
-        )
-    elif button_id == "btn-treatments-month":
-        fig_treatments = px.bar(
-            treatments_data,
-            x="Month",
-            y="TreatmentCount",
-            color="Treatment Name",
-            title="Treatments per Month",
-            labels={"Month": "Month", "TreatmentCount": "Number of Treatments", "Treatment Name": "Treatment Type"}
-        )
-
-    return fig_patients, fig_treatments
+    return {}, fig_treatments
