@@ -170,9 +170,10 @@ def update_treatment_header(urlsearch):
      State('treatment_description', 'value'),
      State('treatment_price', 'value'),
      State('url', 'search'),
-     State('treatmentprofile_id', 'data')]
+     State('treatmentprofile_id', 'data'),
+     State('treatment_profile_deletediv', 'value')]
 )
-def submit_treatment_form(n_clicks, treatment_name, treatment_description, treatment_price, urlsearch, treatmentprofile_id):
+def submit_treatment_form(n_clicks, treatment_name, treatment_description, treatment_price, urlsearch, treatmentprofile_id,delete):
     
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
@@ -193,13 +194,21 @@ def submit_treatment_form(n_clicks, treatment_name, treatment_description, treat
         values = [treatment_name, treatment_description, treatment_price]
     
     elif create_mode == 'edit':
-        sql = """UPDATE Treatment
-                 SET treatment_m = %s,
-                     treatment_description = %s,
-                     treatment_price = %s
-                 WHERE treatment_id = %s;"""
-        
-        values = [treatment_name, treatment_description, treatment_price, treatmentprofile_id]
+        if delete:
+            # Mark as deleted
+            sql = """UPDATE Treatment
+                     SET treatment_delete = true
+                     WHERE treatment_id = %s;"""
+            values = [treatmentprofile_id]
+        else:
+
+            sql = """UPDATE Treatment
+                    SET treatment_m = %s,
+                        treatment_description = %s,
+                        treatment_price = %s
+                    WHERE treatment_id = %s;"""
+            
+            values = [treatment_name, treatment_description, treatment_price, treatmentprofile_id]
     else:
         raise PreventUpdate
 

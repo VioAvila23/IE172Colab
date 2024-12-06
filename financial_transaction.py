@@ -131,8 +131,9 @@ def update_records_table(financial_transaction_filter, status_filter):
     JOIN 
         patient ON appointment.patient_id = patient.patient_id
     WHERE 
-        treatment.treatment_delete = false -- Exclude deleted treatments
-"""
+        payment.payment_delete = FALSE -- Exclude deleted payments
+        AND treatment.treatment_delete = FALSE -- Exclude deleted treatments
+    """
     val = []
 
     # Constructing the WHERE clause with filters

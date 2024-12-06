@@ -248,7 +248,7 @@ layout = html.Div(
                  html.Div(
                     [
                        dbc.Checklist(
-                            id='appointment_profile_delete',
+                            id='medical_result_delete',
                             options=[dict(value=1, label="Mark as Deleted")],
                             value=[] 
                        )
@@ -347,12 +347,14 @@ def load_all_appointments(medicalpatientprofile_id):
     if medicalpatientprofile_id:  # Check if the ID is not None or 0
         # SQL query to fetch appointments specific to the patient ID with proper date and time formatting
         sql = """
-            SELECT appointment_id, 
-                   TO_CHAR(appointment_date, 'DD, Month, YYYY') AS formatted_date,
-                   TO_CHAR(appointment_time, 'HH12:MI AM') AS formatted_time
-            FROM appointment
-            WHERE patient_id = %s 
-              AND (medical_result_id IS NULL OR medical_result_id = 0)  
+            SELECT appointment_id, TO_CHAR(appointment_date, 'DD, Month, YYYY') AS formatted_date,
+            TO_CHAR(appointment_time, 'HH12:MI AM') AS formatted_time
+            FROM 
+            appointment
+            WHERE 
+                patient_id = %s 
+                AND (medical_result_id IS NULL OR medical_result_id = 0)
+                AND appointment_delete = false 
         """
         # Fetch data from DB
         df = getDataFromDB(sql, [medicalpatientprofile_id], ["appointment_id", "formatted_date", "formatted_time"])
@@ -418,9 +420,10 @@ def medical_result_load(pathname, urlsearch):
      State('treatment_done_5_qty', 'value'),
      State('medicalresult_appointment', 'value'),
      State('url', 'search'),
-     State('medicalresult_edit_id', 'data')])
+     State('medicalresult_edit_id', 'data'),
+     State('medical_result_delete','value')])
 def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, treatment_1, qty_1, treatment_2, qty_2, 
-                                treatment_3, qty_3, treatment_4, qty_4, treatment_5, qty_5, appointment, urlsearch, edit_id):  
+                                treatment_3, qty_3, treatment_4, qty_4, treatment_5, qty_5, appointment, urlsearch, edit_id,delete):  
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
         raise PreventUpdate
@@ -499,98 +502,105 @@ def submit_medical_result_form(n_clicks, condition, diagnosis, prescription, tre
                 
         elif create_mode == 'edit':
             # SQL to update the medical result (Conditon to prescription)
-        
-            sql1 = """UPDATE medical_result
-                     SET medical_condition = %s,
-                         medical_diagnosis = %s,
-                         medical_prescription = %s
-                     WHERE medical_result_id = %s;"""
-            values1 = [condition, diagnosis, prescription, edit_id]
+            if delete:
+                sql = """UPDATE Medical_result
+                        SET medical_result_delete = TRUE
+                        WHERE medical_result_id = %s;"""
+                val = [edit_id]
+                modifyDB(sql, val)
 
-            modifyDB(sql1, values1)
-            
-            #Get The appointment ID
-            sql_find1 = """SELECT appointment_id 
-                           FROM Appointment 
-                           WHERE medical_result_id = %s;"""
-            
-            df_find1 = getDataFromDB(sql_find1, [edit_id], ['appointment_id'])
-            
-            # Extract the value from the DataFrame
-            appointment_id= int(df_find1.iloc[0, 0])  # This will give you the value of id of medical result
+            else:
+                sql1 = """UPDATE medical_result
+                        SET medical_condition = %s,
+                            medical_diagnosis = %s,
+                            medical_prescription = %s
+                        WHERE medical_result_id = %s;"""
+                values1 = [condition, diagnosis, prescription, edit_id]
 
-            #Getting the IDs of the appointment_treatment
+                modifyDB(sql1, values1)
+                
+                #Get The appointment ID
+                sql_find1 = """SELECT appointment_id 
+                            FROM Appointment 
+                            WHERE medical_result_id = %s;"""
+                
+                df_find1 = getDataFromDB(sql_find1, [edit_id], ['appointment_id'])
+                
+                # Extract the value from the DataFrame
+                appointment_id= int(df_find1.iloc[0, 0])  # This will give you the value of id of medical result
 
-            sql_find2 = """SELECT appointment_treatment_id
-               FROM appointment_treatment
-               WHERE appointment_id = %s;"""
+                #Getting the IDs of the appointment_treatment
 
-            # Fetch data into a DataFrame
-            df_find2 = getDataFromDB(sql_find2, [appointment_id], ['appointment_treatment_id'])
+                sql_find2 = """SELECT appointment_treatment_id
+                FROM appointment_treatment
+                WHERE appointment_id = %s;"""
 
-            # Access up to 5 appointment_treatment_id values from the DataFrame using .iloc
-            appointment_treatment_id_1 = int(df_find2.iloc[0, 0])
-            appointment_treatment_id_2 = int(df_find2.iloc[1, 0])
-            appointment_treatment_id_3 = int(df_find2.iloc[2, 0]) 
-            appointment_treatment_id_4 = int(df_find2.iloc[3, 0]) 
-            appointment_treatment_id_5 = int(df_find2.iloc[4, 0])
+                # Fetch data into a DataFrame
+                df_find2 = getDataFromDB(sql_find2, [appointment_id], ['appointment_treatment_id'])
 
-            #Treatment 1
-            if treatment_1 and qty_1:
-                sql_treatment_1 = """UPDATE Appointment_treatment
-                                      SET 
-                                        treatment_id = %s,
-                                        quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_1 = (treatment_1, qty_1,appointment_treatment_id_1)
-                modifyDB(sql_treatment_1, values_treatment_1)
-            
-           
-            # Treatment 2
-            if treatment_2 and qty_2:
-                sql_treatment_2 = """UPDATE Appointment_treatment
+                # Access up to 5 appointment_treatment_id values from the DataFrame using .iloc
+                appointment_treatment_id_1 = int(df_find2.iloc[0, 0])
+                appointment_treatment_id_2 = int(df_find2.iloc[1, 0])
+                appointment_treatment_id_3 = int(df_find2.iloc[2, 0]) 
+                appointment_treatment_id_4 = int(df_find2.iloc[3, 0]) 
+                appointment_treatment_id_5 = int(df_find2.iloc[4, 0])
+
+                #Treatment 1
+                if treatment_1 and qty_1:
+                    sql_treatment_1 = """UPDATE Appointment_treatment
                                         SET 
                                             treatment_id = %s,
                                             quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_2 = (treatment_2, qty_2, appointment_treatment_id_2)
-                modifyDB(sql_treatment_2, values_treatment_2)
-
+                                            WHERE appointment_treatment_id = %s;"""
+                    values_treatment_1 = (treatment_1, qty_1,appointment_treatment_id_1)
+                    modifyDB(sql_treatment_1, values_treatment_1)
+                
             
+                # Treatment 2
+                if treatment_2 and qty_2:
+                    sql_treatment_2 = """UPDATE Appointment_treatment
+                                            SET 
+                                                treatment_id = %s,
+                                                quantity = %s
+                                            WHERE appointment_treatment_id = %s;"""
+                    values_treatment_2 = (treatment_2, qty_2, appointment_treatment_id_2)
+                    modifyDB(sql_treatment_2, values_treatment_2)
 
-            # Treatment 3
-            if treatment_3 and qty_3:
-                sql_treatment_3 = """UPDATE Appointment_treatment
-                                        SET 
-                                            treatment_id = %s,
-                                            quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_3 = (treatment_3, qty_3, appointment_treatment_id_3)
-                modifyDB(sql_treatment_3, values_treatment_3)
+                
 
-            
+                # Treatment 3
+                if treatment_3 and qty_3:
+                    sql_treatment_3 = """UPDATE Appointment_treatment
+                                            SET 
+                                                treatment_id = %s,
+                                                quantity = %s
+                                            WHERE appointment_treatment_id = %s;"""
+                    values_treatment_3 = (treatment_3, qty_3, appointment_treatment_id_3)
+                    modifyDB(sql_treatment_3, values_treatment_3)
 
-            # Treatment 4
-            if treatment_4 and qty_4:
-                sql_treatment_4 = """UPDATE Appointment_treatment
-                                        SET 
-                                            treatment_id = %s,
-                                            quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_4 = (treatment_4, qty_4, appointment_treatment_id_4)
-                modifyDB(sql_treatment_4, values_treatment_4)
+                
 
-            
+                # Treatment 4
+                if treatment_4 and qty_4:
+                    sql_treatment_4 = """UPDATE Appointment_treatment
+                                            SET 
+                                                treatment_id = %s,
+                                                quantity = %s
+                                            WHERE appointment_treatment_id = %s;"""
+                    values_treatment_4 = (treatment_4, qty_4, appointment_treatment_id_4)
+                    modifyDB(sql_treatment_4, values_treatment_4)
 
-            # Treatment 5
-            if treatment_5 and qty_5:
-                sql_treatment_5 = """UPDATE Appointment_treatment
-                                        SET 
-                                            treatment_id = %s,
-                                            quantity = %s
-                                        WHERE appointment_treatment_id = %s;"""
-                values_treatment_5 = (treatment_5, qty_5, appointment_treatment_id_5)
-                modifyDB(sql_treatment_5, values_treatment_5)
+                
+
+                # Treatment 5
+                if treatment_5 and qty_5:
+                    sql_treatment_5 = """UPDATE Appointment_treatment
+                                            SET 
+                                                treatment_id = %s,
+                                                quantity = %s
+                                            WHERE appointment_treatment_id = %s;"""
+                    values_treatment_5 = (treatment_5, qty_5, appointment_treatment_id_5)
+                    modifyDB(sql_treatment_5, values_treatment_5)
             
         return 'success', 'Medical Result Submitted successfully!', True
         

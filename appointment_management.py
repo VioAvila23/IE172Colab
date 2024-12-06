@@ -123,6 +123,8 @@ def update_records_table(appointmentfilter, status_filter):
         appointment
     JOIN 
         patient ON appointment.patient_id = patient.patient_id
+    WHERE 
+        appointment.appointment_delete = FALSE
     """
 
     # SQL conditions and values
@@ -146,9 +148,9 @@ def update_records_table(appointmentfilter, status_filter):
         conditions.append("appointment.appointment_status = %s")
         val.append(status_filter)
 
-    # Add WHERE clause if there are conditions
+    # Add additional conditions to the WHERE clause
     if conditions:
-        sql += " WHERE " + " AND ".join(conditions)
+        sql += " AND " + " AND ".join(conditions)
 
     # Add ORDER BY clause
     sql += """

@@ -283,6 +283,7 @@ def populate_medical_summary(urlsearch):
             Medical_result mr ON a.medical_result_id = mr.medical_result_id
         WHERE 
             a.patient_id = %s 
+            AND mr.medical_result_delete = false
             AND a.appointment_delete = false
             AND t.treatment_delete = false
         GROUP BY 

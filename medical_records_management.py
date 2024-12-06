@@ -70,15 +70,16 @@ layout = dbc.Container([
     ]
 )
 def update_records_table(patientfilter):
-    # Base SQL query for the Patient table with only Patient ID and Patient Name
+    # Base SQL query to select distinct patients
     sql = """
-        SELECT 
+        SELECT DISTINCT 
         p.patient_id,
         CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name"
         FROM 
         Patient p
         LEFT JOIN 
         Appointment a ON p.patient_id = a.patient_id
+        WHERE p.patient_delete = false
     """
     val = []
 
@@ -86,21 +87,20 @@ def update_records_table(patientfilter):
     if patientfilter:
         # Check if the filter is numeric to search by patient_id
         if patientfilter.isdigit():
-            sql += " WHERE p.patient_id = %s"
+            sql += " AND p.patient_id = %s"
             val.append(int(patientfilter))
         else:
             sql += """
-                WHERE 
-                p.patient_last_m ILIKE %s OR 
-                p.patient_first_m ILIKE %s OR 
-                p.patient_middle_m ILIKE %s
+                AND (
+                    p.patient_last_m ILIKE %s OR 
+                    p.patient_first_m ILIKE %s OR 
+                    p.patient_middle_m ILIKE %s
+                )
             """
             val.extend([f'%{patientfilter}%'] * 3)
 
-    # Add the GROUP BY and ORDER BY clauses for Patient ID and Patient Name
+    # Add the ORDER BY clause for Patient ID
     sql += """
-        GROUP BY 
-        p.patient_id, p.patient_last_m, p.patient_first_m, p.patient_middle_m
         ORDER BY 
         p.patient_id
     """
@@ -117,7 +117,7 @@ def update_records_table(patientfilter):
     # Generating view buttons for each patient
     df['Edit Medical Record'] = [
         html.Div(
-            dbc.Button("View", color='warning', size='sm', 
+            dbc.Button("Edit", color='warning', size='sm', 
                        href=f'/medical_records/medical_record_profile?mode=view&id={row["Patient ID"]}'),
             className='text-center'
         ) for idx, row in df.iterrows()

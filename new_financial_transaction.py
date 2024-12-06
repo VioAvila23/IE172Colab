@@ -407,12 +407,13 @@ def generate_transactions(choice,urlsearch):
         State('financialtrasaction_status', 'value'),
         State('financialtransaction_remarks', 'value'),
         State('url', 'search'),
-        State('financial_transaction_id', 'data')
+        State('financial_transaction_id', 'data'),
+        State('financial_transaction_delete','value')
         
     ]
 )
 
-def financial_submit_form(n_clicks, appointment_id,payment_amount, payment_status, remarks, urlsearch, transaction_id):
+def financial_submit_form(n_clicks, appointment_id,payment_amount, payment_status, remarks, urlsearch, transaction_id,delete):
 
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
@@ -501,18 +502,25 @@ def financial_submit_form(n_clicks, appointment_id,payment_amount, payment_statu
 
         total_payment = int(df2.iloc[0]['Total_Payment'])
         
-        sql = """UPDATE Payment
-                 SET payment_amount = %s,
-                     payment_status = %s,
-                     paid_amount = %s,
-                     remarks = %s
+        if delete:
+            sql ="""UPDATE Payment
+                 SET payment_delete = true
                  WHERE payment_id = %s"""
-        values = [total_payment,payment_status,payment_amount,remarks,payment_id]
-        modifyDB(sql,values)
+            val = [payment_id]
+            modifyDB(sql,val)
+        else:
+            sql = """UPDATE Payment
+                    SET payment_amount = %s,
+                        payment_status = %s,
+                        paid_amount = %s,
+                        remarks = %s
+                    WHERE payment_id = %s"""
+            values = [total_payment,payment_status,payment_amount,remarks,payment_id]
+            modifyDB(sql,values)
     else:
         raise PreventUpdate
     try:
-        return'success', 'Patient Profile Submitted successfully!', True
+        return'success', 'Transaction Submitted successfully!', True
     except Exception as e:
         return 'danger', f'Error Occurred: {e}', True
 

@@ -237,11 +237,12 @@ def appointment_result_load(pathname,urlsearch):
      State('appointment_reason', 'value'),
      State('appointment_status', 'value'),
      State('url', 'search'),
-     State('appointmentprofile_id', 'data')]
+     State('appointmentprofile_id', 'data'),
+     State('appointment_profile_delete','value')]
 )
 
 def submit_appointment_form(n_clicks, patient_name, appointment_date, appointment_time, appointment_reason, 
-                            appointment_status, urlsearch, appointmentprofile_id):
+                            appointment_status, urlsearch, appointmentprofile_id,delete):
 
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
@@ -263,14 +264,23 @@ def submit_appointment_form(n_clicks, patient_name, appointment_date, appointmen
     
 
     elif create_mode == 'edit':
-        sql = """UPDATE appointment
-                 SET patient_id = %s,
-                     appointment_date = %s,
-                     appointment_time = %s,
-                     appointment_reason = %s,
-                     appointment_status = %s
-                 WHERE appointment_id = %s;"""
-        values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status, appointmentprofile_id]
+        if delete:
+            sql = """UPDATE Appointment
+                    SET appointment_delete = TRUE
+                    WHERE appointment_id = %s
+                    """
+            values = [appointmentprofile_id]
+
+        else:
+
+            sql = """UPDATE appointment
+                    SET patient_id = %s,
+                        appointment_date = %s,
+                        appointment_time = %s,
+                        appointment_reason = %s,
+                        appointment_status = %s
+                    WHERE appointment_id = %s;"""
+            values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status, appointmentprofile_id]
     
     else: 
         raise PreventUpdate

@@ -148,8 +148,8 @@ def update_patient_visits_graph(selected_year):
             TO_CHAR(appointment_date, 'Month') AS month_name,
             COUNT(*) AS visit_count
         FROM Appointment
-        WHERE appointment_delete = false
-          AND appointment_status = 'Completed'
+        WHERE 
+          appointment_status = 'Completed'
           AND EXTRACT(YEAR FROM appointment_date) = %s
         GROUP BY TO_CHAR(appointment_date, 'Month'), EXTRACT(MONTH FROM appointment_date)
         ORDER BY EXTRACT(MONTH FROM appointment_date);
@@ -193,7 +193,6 @@ def update_treatment_count_graph(selected_year, selected_treatment):
         JOIN Treatment t ON at.treatment_id = t.treatment_id
         WHERE at.appointment_treatment_delete = false
           AND t.treatment_delete = false
-          AND a.appointment_delete = false
           AND a.appointment_status = 'Completed'
           AND EXTRACT(YEAR FROM a.appointment_date) = %s
           AND t.treatment_id = %s
