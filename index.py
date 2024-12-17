@@ -78,6 +78,8 @@ def display_page_content(pathname):
         return None, log.layout
     elif pathname == '/signup':
         return None, signup.layout
+    elif pathname == '/forgot_password':
+        return None, forgot_password.layout
     elif pathname == '/home':
         return cm.navbar, home.layout
     elif pathname == '/appointment':
