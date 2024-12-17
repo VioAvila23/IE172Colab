@@ -44,10 +44,10 @@ layout = html.Div(
             style={
                 'backgroundColor': '#fff',
                 'borderRadius': '20px',
-                'padding': '50px',
+                'padding': '60px',
                 'boxShadow': '0px 6px 6px rgba(0, 0, 0, 0.25)',
                 'width': '450px',
-                'height': '470px',
+                'height': '550px',
                 'textAlign': 'center',
             },
             children=[
@@ -71,6 +71,20 @@ layout = html.Div(
                                 'fontSize': '16px',
                             }),
                 html.Div(id='login-error', style={'color': 'red', 'marginTop': '10px'}),
+
+                # Forgot Password Link
+                html.Div(
+                    children=[
+                        dcc.Link("Forgot Password?", href='/forgot_password', style={
+                            'color': '#194D62',
+                            'fontWeight': '600',
+                            'fontSize': '14px',
+                            'marginTop': '20px',
+                            'display': 'inline-block',
+                            'textDecoration': 'none'
+                        })
+                    ]
+                ),
 
                 html.Div(
                     children=[
