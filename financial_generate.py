@@ -282,16 +282,17 @@ def populate_table_section(urlsearch):
     # SQL query to fetch the required fields
     sql = """
         SELECT 
-            t.treatment_m AS "Treatment Name", 
-            at.quantity AS Quantity, 
-            t.treatment_price AS "Price per Item", 
-            (t.treatment_price * at.quantity) AS Total
-        FROM Appointment_treatment at
-        JOIN Treatment t ON at.treatment_id = t.treatment_id
-        JOIN Appointment a ON at.appointment_id = a.appointment_id
-        WHERE a.payment_id = %s 
-          AND at.appointment_treatment_delete = false
-          AND t.treatment_delete = false
+    t.treatment_m AS "Treatment Name", 
+    at.quantity AS Quantity, 
+    t.treatment_price AS "Price per Item", 
+    (t.treatment_price * at.quantity) AS Total
+FROM Appointment_treatment at
+JOIN Treatment t ON at.treatment_id = t.treatment_id
+JOIN Appointment a ON at.appointment_id = a.appointment_id
+WHERE a.payment_id = %s 
+  AND at.appointment_treatment_delete = false
+  AND (t.treatment_delete = false OR (t.treatment_delete = true AND t.treatment_id != 6))
+
     """
     val = [payment_id]
     col = ["Treatment Name", "Quantity", "Price per Item", "Total"]
@@ -313,8 +314,6 @@ def populate_table_section(urlsearch):
         style={"textAlign": "center"},
     )
 
-
-# Callback to populate bottom section fields
 @app.callback(
     [
         Output("generate_transac_remarks_id", "value"),
@@ -349,7 +348,13 @@ def populate_bottom_section(urlsearch):
     df = getDataFromDB(sql, val, col)
     
     if df.empty:
-        return [""] * 4
+        return ["", "PHP 0.00", "PHP 0.00", "PHP 0.00"]
 
     row = df.iloc[0]
-    return row["Remarks"], row["Total"], row["Paid"], row["Remaining"]
+
+    # Format the currency values to PHP format with .00
+    total = f"PHP {row['Total']:.2f}"
+    paid = f"PHP {row['Paid']:.2f}"
+    remaining = f"PHP {row['Remaining']:.2f}"
+
+    return row["Remarks"], total, paid, remaining

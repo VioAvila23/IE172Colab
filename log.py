@@ -1,5 +1,4 @@
 from dash import html, dcc
-
 layout = html.Div(
     style={
         'display': 'flex',
@@ -81,23 +80,6 @@ layout = html.Div(
                             'fontSize': '14px',
                             'marginTop': '20px',
                             'display': 'inline-block',
-                            'textDecoration': 'none'
-                        })
-                    ]
-                ),
-
-                html.Div(
-                    children=[
-                        html.P("Don't have an account yet?", style={
-                            'fontSize': '14px',
-                            'color': '#2E2C2C',
-                            'marginTop': '20px',
-                            'marginBottom': '5px'
-                        }),
-                        dcc.Link("Sign up here", href='/signup', refresh=True, style={
-                            'color': '#194D62',
-                            'fontWeight': '600',
-                            'fontSize': '14px',
                             'textDecoration': 'none'
                         })
                     ]

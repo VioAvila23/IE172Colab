@@ -345,10 +345,11 @@ def update_header(urlsearch):
      State('city', 'value'),
      State('postal_code', 'value'),
      State('url', 'search'),
-     State('patientprofile_id', 'data')]
+     State('patientprofile_id', 'data'),
+     State('patient_profile_delete','value')]
 )
 def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                email_address, street, barangay, city, postal_code, urlsearch, patientprofile_id):
+                email_address, street, barangay, city, postal_code, urlsearch, patientprofile_id,delete):
     
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
@@ -371,31 +372,42 @@ def submit_form(n_clicks, last_name, first_name, middle_name, birthdate, age, se
                   email_address, street, barangay, city, postal_code]
     
     elif create_mode == 'edit':
-        sql = """UPDATE patient
-                SET patient_last_m = %s,
-                    patient_first_m = %s,
-                    patient_middle_m = %s,
-                    patient_bd = %s,
-                    age = %s,
-                    sex = %s,
-                    patient_cn = %s,
-                    patient_email = %s,
-                    street = %s,
-                    barangay = %s,
-                    city = %s,
-                    postal_code = %s
-                WHERE patient_id = %s;"""
-        
-        values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
-                  email_address, street, barangay, city, postal_code, patientprofile_id]
+
+        if delete:
+            sql = """
+    UPDATE Patient
+    SET patient_delete = TRUE
+    WHERE patient_id = %s"""
+            values = [patientprofile_id]
+        else:
+            sql = """UPDATE patient
+                    SET patient_last_m = %s,
+                        patient_first_m = %s,
+                        patient_middle_m = %s,
+                        patient_bd = %s,
+                        age = %s,
+                        sex = %s,
+                        patient_cn = %s,
+                        patient_email = %s,
+                        street = %s,
+                        barangay = %s,
+                        city = %s,
+                        postal_code = %s
+                    WHERE patient_id = %s;"""
+            
+            values = [last_name, first_name, middle_name, birthdate, age, sex, cellphone_number, 
+                    email_address, street, barangay, city, postal_code, patientprofile_id]
     else:
         raise PreventUpdate
 
+    # Execute database modification
     try:
         modifyDB(sql, values)
-        return 'success', 'Patient Profile Submitted successfully!', True
+        if delete:
+            return 'warning', 'Patient Profile Deleted', True
+        return 'success', 'Patient Profile Submitted Successfully!', True
     except Exception as e:
-        return 'danger', f'Error Occurred: {e}', True
+        return 'danger', f'Error occurred: {e}', True
 
 #This prepopulates during edit mode
 @app.callback(

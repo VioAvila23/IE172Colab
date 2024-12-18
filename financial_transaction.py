@@ -33,7 +33,6 @@ layout = dbc.Container([
         align="center"
     ),
     html.Hr(),
-    # Row for search bar and Add New Financial Transaction button
     dbc.Row(
         [
             dbc.Col(
@@ -59,35 +58,33 @@ layout = dbc.Container([
     ),
 
     dbc.Row(
-    [
-        dbc.Col(
-            [
-                html.Label(
-                    "Filter by Payment Status", 
-                    className="form-label", 
-                    style={"fontSize": "18px", "fontWeight": "bold"}
-                ),
-                dcc.Dropdown(
-                    id="status_filter",  # ID for dropdown filter
-                    options=[
-                        {"label": "Paid", "value": "Paid"},
-                        {"label": "Partially Paid", "value": "Partially Paid"},
-                        {"label": "Not Paid", "value": "Not Paid"},
-                    ],
-                    placeholder="Select Payment Status",
-                    className="form-control",
-                    style={"borderRadius": "20px", "fontSize": "18px"}  # Removed backgroundColor
-                ),
-            ],
-            md=8,
-        )
-    ],
-    className="mb-4",
-    align="center"
-),
+        [
+            dbc.Col(
+                [
+                    html.Label(
+                        "Filter by Payment Status", 
+                        className="form-label", 
+                        style={"fontSize": "18px", "fontWeight": "bold"}
+                    ),
+                    dcc.Dropdown(
+                        id="status_filter",  # ID for dropdown filter
+                        options=[
+                            {"label": "Paid", "value": "Paid"},
+                            {"label": "Partially Paid", "value": "Partially Paid"},
+                            {"label": "Not Paid", "value": "Not Paid"},
+                        ],
+                        placeholder="Select Payment Status",
+                        className="form-control",
+                        style={"borderRadius": "20px", "fontSize": "18px"}  # Removed backgroundColor
+                    ),
+                ],
+                md=8,
+            )
+        ],
+        className="mb-4",
+        align="center"
+    ),
 
-
-    # Row for the table placeholder
     dbc.Row(
         dbc.Col(
             html.Div(
@@ -109,12 +106,11 @@ layout = dbc.Container([
     ]
 )
 def update_records_table(financial_transaction_filter, status_filter):
-    # Updated SQL query with correct table joins and column selection
     sql = """
     SELECT 
         payment.payment_id AS "Transaction ID", 
         CONCAT(patient.patient_last_m, ', ', patient.patient_first_m) AS "Patient Name", 
-        STRING_AGG(treatment.treatment_m, ', ') AS "Treatment Name", -- Concatenate treatments into one string
+        STRING_AGG(treatment.treatment_m, ', ') AS "Treatment Name", 
         TO_CHAR(payment.payment_date, 'DD, Month YYYY') AS "Payment Date", 
         payment.payment_amount AS "Payment Amount", 
         payment.payment_status AS "Payment Status", 
@@ -131,15 +127,12 @@ def update_records_table(financial_transaction_filter, status_filter):
     JOIN 
         patient ON appointment.patient_id = patient.patient_id
     WHERE 
-        payment.payment_delete = FALSE -- Exclude deleted payments
-        AND treatment.treatment_delete = FALSE -- Exclude deleted treatments
+        payment.payment_delete = FALSE
+        AND (treatment.treatment_delete = FALSE OR (treatment.treatment_delete = TRUE AND treatment.treatment_id != 6))
     """
     val = []
-
-    # Constructing the WHERE clause with filters
     filters = []
 
-    # Adding filters based on the input search
     if financial_transaction_filter:
         if financial_transaction_filter.isdigit():
             filters.append("payment.payment_id = %s")
@@ -152,16 +145,13 @@ def update_records_table(financial_transaction_filter, status_filter):
             """)
             val.extend([f'%{financial_transaction_filter}%'] * 3)
 
-    # Adding filters for payment status dropdown
     if status_filter:
         filters.append("payment.payment_status = %s")
         val.append(status_filter)
 
-    # Append WHERE clause if filters are applied
     if filters:
         sql += " AND " + " AND ".join(filters)
 
-    # Adding GROUP BY and ORDER BY clauses
     sql += """
         GROUP BY 
             payment.payment_id, 
@@ -176,17 +166,16 @@ def update_records_table(financial_transaction_filter, status_filter):
             payment.payment_id
     """
 
-    # Column headers for the DataFrame
     col = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks"]
 
-    # Fetching the filtered data from the database
     df = getDataFromDB(sql, val, col)
 
-    # Handling empty DataFrame scenario
     if df.empty:
         return [html.Div("No records found.", className="text-center")]
 
-    # Adding "Edit" action button for each row
+    df['Payment Amount'] = df['Payment Amount'].apply(lambda x: f"PHP {x:,.2f}")
+    df['Paid Amount'] = df['Paid Amount'].apply(lambda x: f"PHP {x:,.2f}")
+
     df['Action'] = [
         html.Div(
             dbc.Button(
@@ -198,26 +187,29 @@ def update_records_table(financial_transaction_filter, status_filter):
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
+
     df['Receipt'] = [
-    html.Div(
-        dbc.Button(
-            "Generate", 
-            size='sm', 
-            href=f'/financial_transaction/financial_generate?mode=generate&id={row["Transaction ID"]}',
-            style={'backgroundColor': 'blue', 'color': 'white'}  # Blue background, white text
-        ),
-        className='text-center'
-    ) for idx, row in df.iterrows()
-]
+        html.Div(
+            dbc.Button(
+                "Generate", 
+                size='sm', 
+                href=f'/financial_transaction/financial_generate?mode=generate&id={row["Transaction ID"]}',
+                style={'backgroundColor': 'blue', 'color': 'white'}
+            ),
+            className='text-center'
+        ) for idx, row in df.iterrows()
+    ]
 
-
-    # Display only relevant columns with action button included
     display_columns = ["Transaction ID", "Patient Name", "Treatment Name", "Payment Date", "Payment Amount", "Payment Status", "Paid Amount", "Remarks", "Action", 'Receipt']
 
-    # Create and style the table from DataFrame
     table = dbc.Table.from_dataframe(
         df[display_columns], 
-        striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'}
+        striped=True, 
+        bordered=True, 
+        hover=True, 
+        size='sm', 
+        style={'textAlign': 'center'}
     )
 
     return [table]
+

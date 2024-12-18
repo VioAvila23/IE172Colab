@@ -284,8 +284,8 @@ def populate_medical_summary(urlsearch):
         WHERE 
             a.patient_id = %s 
             AND mr.medical_result_delete = false
-            AND a.appointment_delete = false
-            AND t.treatment_delete = false
+            
+            AND t.treatment_id != 6
         GROUP BY 
             a.appointment_id, mr.medical_result_id, a.appointment_date, mr.medical_condition,
             mr.medical_diagnosis, mr.medical_prescription

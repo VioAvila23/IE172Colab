@@ -6,7 +6,7 @@ import psycopg2
 def getdblocation():
     db = psycopg2.connect(
         host='localhost', 
-        database='DentalStudio10', 
+        database='Demo4', 
         user='postgres', 
         port=5433, 
         password='1234', 
@@ -44,3 +44,13 @@ def getDataFromDB(sql, values, dfcolumns):
     rows = pd.DataFrame(cur.fetchall(), columns=dfcolumns)
     db.close()
     return rows
+
+
+def modifydatabasereturnid(sqlcommand, values):
+    db = getdblocation()
+    cursor = db.cursor()
+    cursor.execute(sqlcommand, values)
+    key = cursor.fetchone()[0]
+    db.commit()
+    db.close()
+    return key

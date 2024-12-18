@@ -19,6 +19,7 @@ import dbconnect as db
 from apps import log
 from apps import signup
 from apps import home
+from apps import forgot_password
 
 # Define styles for active and inactive navbar links
 navlink_style = {'color': '#062937', 'font-size': '20px', 'margin-right': '2.5em'}
@@ -76,10 +77,7 @@ def display_page_content(pathname):
     # Hide navbar for login page
     if pathname == '/login' or pathname == '/':
         return None, log.layout
-    elif pathname == '/signup':
-        return None, signup.layout
-    elif pathname == '/forgot_password':
-        return None, forgot_password.layout
+ 
     elif pathname == '/home':
         return cm.navbar, home.layout
     elif pathname == '/appointment':
@@ -110,6 +108,8 @@ def display_page_content(pathname):
         return cm.navbar, performance.layout
     elif pathname == '/treatment/treatment_management_profile':
         return cm.navbar, treatment_management_profile.layout
+    elif pathname == '/forgot_password':
+        return None, forgot_password.layout
     else:
         return cm.navbar, html.Div("404 - Page not found", style={'color': 'red', 'font-size': '24px', 'text-align': 'center'})
 

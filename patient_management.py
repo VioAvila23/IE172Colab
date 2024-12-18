@@ -82,42 +82,44 @@ layout = dbc.Container([
 def update_records_table(patientfilter):
     # Base SQL query for the Patient table
     sql = """
-       SELECT 
-    p.patient_id,
-    CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
-    p.age AS "Age",
-    p.patient_cn AS "Patient Contact Number",
-    p.patient_email AS "Patient Email Address",
-    MAX(CASE WHEN a.appointment_status = 'Completed' THEN TO_CHAR(a.appointment_date, 'DD, Month, YYYY') ELSE NULL END) AS "Last Visit"
+        SELECT 
+            p.patient_id,
+            CONCAT(p.patient_last_m, ', ', p.patient_first_m, ' ', COALESCE(p.patient_middle_m, '')) AS "Patient Name",
+            p.age AS "Age",
+            p.patient_cn AS "Patient Contact Number",
+            p.patient_email AS "Patient Email Address",
+            MAX(CASE WHEN a.appointment_status = 'Completed' THEN TO_CHAR(a.appointment_date, 'DD, Month, YYYY') ELSE NULL END) AS "Last Visit"
         FROM 
-     Patient p
-    LEFT JOIN 
-    Appointment a ON p.patient_id = a.patient_id
-
+            Patient p
+        LEFT JOIN 
+            Appointment a ON p.patient_id = a.patient_id
+        WHERE 
+            p.patient_delete = FALSE
     """
     val = []
 
-    # Add the WHERE clause if a filter is provided
+    # Add additional filtering conditions if a filter is provided
     if patientfilter:
         # Check if the filter is numeric to search by patient_id
         if patientfilter.isdigit():
-            sql += " WHERE p.patient_id = %s"
+            sql += " AND p.patient_id = %s"
             val.append(int(patientfilter))
         else:
             sql += """
-                WHERE 
-                p.patient_last_m ILIKE %s OR 
-                p.patient_first_m ILIKE %s OR 
-                p.patient_middle_m ILIKE %s
+                AND (
+                    p.patient_last_m ILIKE %s OR 
+                    p.patient_first_m ILIKE %s OR 
+                    p.patient_middle_m ILIKE %s
+                )
             """
             val.extend([f'%{patientfilter}%'] * 3)
 
     # Add the GROUP BY and ORDER BY clauses
     sql += """
         GROUP BY 
-        p.patient_id, p.patient_last_m, p.patient_first_m, p.patient_middle_m, p.age, p.patient_cn, p.patient_email
+            p.patient_id, p.patient_last_m, p.patient_first_m, p.patient_middle_m, p.age, p.patient_cn, p.patient_email
         ORDER BY 
-        p.patient_id
+            p.patient_id
     """
 
     # Define the column names
@@ -137,7 +139,8 @@ def update_records_table(patientfilter):
             className='text-center'
         ) for idx, row in df.iterrows()
     ]
-    display_columns = ["Patient Name", "Age", "Patient Contact Number", "Patient Email Address", "Last Visit","Action"]
+    display_columns = ["Patient Name", "Age", "Patient Contact Number", "Patient Email Address", "Last Visit", "Action"]
+
     # Creating the updated table with centered text
     table = dbc.Table.from_dataframe(df[display_columns], striped=True, bordered=True, hover=True, size='sm', style={'textAlign': 'center'})
 

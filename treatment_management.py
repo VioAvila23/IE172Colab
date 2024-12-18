@@ -115,6 +115,9 @@ def update_records_table(treatmentfilter):
     if df.empty:
         return [html.Div("No records found.", className="text-center")]
 
+    # Format the Price column with PHP and two decimal places
+    df['Price'] = df['Price'].apply(lambda x: f"PHP {x:,.2f}")
+
     # Generating edit buttons for each treatment
     df['Action'] = [
         html.Div(

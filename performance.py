@@ -10,12 +10,12 @@ from dash.exceptions import PreventUpdate
 from urllib.parse import parse_qs, urlparse
 from dbconnect import getDataFromDB
 # Generate a list of years for the dropdown
-years = [{"label": str(year), "value": str(year)} for year in range(2000, datetime.datetime.now().year + 1)]
+years = [{"label": str(year), "value": str(year)} for year in range(2000, datetime.datetime.now().year + 3)]
 
 
 
 # Generate a list of years for the dropdown
-years = [{"label": str(year), "value": str(year)} for year in range(2000, datetime.datetime.now().year + 1)]
+years = [{"label": str(year), "value": str(year)} for year in range(2000, datetime.datetime.now().year + 3)]
 
 layout = dbc.Container(
     [
@@ -186,18 +186,18 @@ def update_treatment_count_graph(selected_year, selected_treatment):
     # SQL query to fetch monthly treatment counts
     sql = """
         SELECT 
-            TO_CHAR(a.appointment_date, 'Month') AS month_name,
-            COUNT(*) AS treatment_count
-        FROM Appointment_treatment at
-        JOIN Appointment a ON at.appointment_id = a.appointment_id
-        JOIN Treatment t ON at.treatment_id = t.treatment_id
-        WHERE at.appointment_treatment_delete = false
-          AND t.treatment_delete = false
-          AND a.appointment_status = 'Completed'
-          AND EXTRACT(YEAR FROM a.appointment_date) = %s
-          AND t.treatment_id = %s
-        GROUP BY TO_CHAR(a.appointment_date, 'Month'), EXTRACT(MONTH FROM a.appointment_date)
-        ORDER BY EXTRACT(MONTH FROM a.appointment_date);
+    TO_CHAR(a.appointment_date, 'Month') AS month_name,
+    SUM(at.quantity) AS treatment_count
+FROM Appointment_treatment at
+JOIN Appointment a ON at.appointment_id = a.appointment_id
+JOIN Treatment t ON at.treatment_id = t.treatment_id
+WHERE at.appointment_treatment_delete = false
+  AND a.appointment_status = 'Completed'
+  AND EXTRACT(YEAR FROM a.appointment_date) = %s
+  AND t.treatment_id = %s
+  AND (t.treatment_delete = false OR (t.treatment_delete = true AND t.treatment_id != 6))
+GROUP BY TO_CHAR(a.appointment_date, 'Month'), EXTRACT(MONTH FROM a.appointment_date)
+ORDER BY EXTRACT(MONTH FROM a.appointment_date)
     """
     # Fetch data from the database
     df = getDataFromDB(sql, [selected_year, selected_treatment], ["month_name", "treatment_count"])

@@ -331,8 +331,7 @@ def generate_transactions(choice,urlsearch):
                 treatment ON appointment_treatment.treatment_id = treatment.treatment_id
                 WHERE 
                 appointment.appointment_id = %s
-                AND appointment.appointment_delete = false
-                AND appointment_treatment.appointment_treatment_delete = false
+                
                 AND treatment.treatment_delete = false;"""
 
         values2 = [choice]
@@ -346,18 +345,22 @@ def generate_transactions(choice,urlsearch):
 
     elif create_mode == 'edit':
         sql = """
-        SELECT treatment.treatment_m AS treatment_name, appointment_treatment.quantity, treatment.treatment_price
-        FROM 
-        appointment_treatment
-        JOIN 
-        appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-        JOIN 
-        treatment ON appointment_treatment.treatment_id = treatment.treatment_id
-        WHERE 
-        appointment.payment_id = %s
-        AND appointment.appointment_delete = false
-        AND appointment_treatment.appointment_treatment_delete = false
-        AND treatment.treatment_delete = false;
+        SELECT 
+    treatment.treatment_m AS treatment_name, 
+    appointment_treatment.quantity, 
+    treatment.treatment_price
+FROM 
+    appointment_treatment
+JOIN 
+    appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+JOIN 
+    treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+WHERE 
+    appointment.payment_id = %s
+    AND (
+        treatment.treatment_delete = FALSE 
+        OR (treatment.treatment_delete = TRUE AND treatment.treatment_id != 6)
+    );
 
         """
         values = [payment_id]
@@ -371,18 +374,20 @@ def generate_transactions(choice,urlsearch):
 
         #Generates Total Payment
 
-        sql2 =  """SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
-                FROM 
-                appointment_treatment
-                JOIN 
-                appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-                JOIN 
-                treatment ON appointment_treatment.treatment_id = treatment.treatment_id
-                WHERE 
-                appointment.payment_id = %s
-                AND appointment.appointment_delete = false
-                AND appointment_treatment.appointment_treatment_delete = false
-                AND treatment.treatment_delete = false;"""
+        sql2 =  """SELECT 
+    SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
+FROM 
+    appointment_treatment
+JOIN 
+    appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+JOIN 
+    treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+WHERE 
+    appointment.payment_id = %s
+    AND (
+        treatment.treatment_delete = FALSE 
+        OR (treatment.treatment_delete = TRUE AND treatment.treatment_id != 6)
+    );"""
 
         values2 = [payment_id]
 
@@ -408,121 +413,97 @@ def generate_transactions(choice,urlsearch):
         State('financialtransaction_remarks', 'value'),
         State('url', 'search'),
         State('financial_transaction_id', 'data'),
-        State('financial_transaction_delete','value')
-        
+        State('financial_transaction_delete', 'value')
     ]
 )
-
-def financial_submit_form(n_clicks, appointment_id,payment_amount, payment_status, remarks, urlsearch, transaction_id,delete):
-
+def financial_submit_form(n_clicks, appointment_id, payment_amount, payment_status, remarks, urlsearch, transaction_id, delete):
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
         raise PreventUpdate
+
     parsed = urlparse(urlsearch)
     create_mode = parse_qs(parsed.query).get('mode', [''])[0]
 
-    if not all([payment_amount, payment_status, remarks, urlsearch]):
+    # Check required fields
+    if not all([payment_status, remarks]):
         return 'danger', 'Please fill in all required fields.', True
 
-    #Get payment total using SQL
-    
-
-    
-    
-    if create_mode == 'add':
-        sqlt = """SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
-            FROM 
-            appointment_treatment
-            JOIN 
-            appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-            JOIN 
-            treatment ON appointment_treatment.treatment_id = treatment.treatment_id
-            WHERE 
-            appointment.appointment_id = %s
-            AND appointment.appointment_delete = false
-            AND appointment_treatment.appointment_treatment_delete = false
-            AND treatment.treatment_delete = false;"""
-
-        valuest = [appointment_id]
-
-        colt = ["Total_Payment"]
-        df2 = getDataFromDB(sqlt, valuest, colt)
-        total_payment = int(df2.iloc[0]['Total_Payment'])
-        sql = """INSERT INTO Payment (payment_date,payment_amount,
-                 payment_status,paid_amount,remarks)
-                 
-                 VALUES (CURRENT_DATE,%s,%s,%s,%s)"""
-        
-        values = [total_payment,payment_status,payment_amount,remarks]
-
-        modifyDB(sql,values)
-
-
-        # SQL to find the max payment_id
-        sql_find = """SELECT MAX(payment.payment_id) FROM payment"""
-        df_find = getDataFromDB(sql_find, [],['Max Payment ID'])
-        result_id = int(df_find.iloc[0,0])
-
-        #Inserts the payment to the corresponding appointment selected
-
-        sql2 = """UPDATE Appointment
-                SET payment_id = %s
-                WHERE appointment_id = %s;"""
-        values2 = [result_id,appointment_id]
-        modifyDB(sql2,values2)
-
-        return 'success', 'Medical Result Submitted successfully!', True
-    
-    elif create_mode == 'edit':
-        #Gets total payment
-        parsed = urlparse(urlsearch)
-
-        # Get the mode
-        create_mode = parse_qs(parsed.query).get('mode', [''])[0]
-
-        # Get the payment ID
-        payment_id = int(parse_qs(parsed.query).get('id', [0])[0])
-        sql2 =  """SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
-                FROM 
-                appointment_treatment
-                JOIN 
-                appointment ON appointment_treatment.appointment_id = appointment.appointment_id
-                JOIN 
-                treatment ON appointment_treatment.treatment_id = treatment.treatment_id
-                WHERE 
-                appointment.payment_id = %s
+    try:
+        if create_mode == 'add':
+            # Fetch the total payment amount
+            sqlt = """
+                SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
+                FROM appointment_treatment
+                JOIN appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+                JOIN treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+                WHERE appointment.appointment_id = %s
                 AND appointment.appointment_delete = false
                 AND appointment_treatment.appointment_treatment_delete = false
-                AND treatment.treatment_delete = false;"""
+                AND treatment.treatment_delete = false;
+            """
+            valuest = [appointment_id]
+            df_total = getDataFromDB(sqlt, valuest, ["Total_Payment"])
+            total_payment = int(df_total.iloc[0]['Total_Payment'])
 
-        values2 = [payment_id]
+            # Insert new payment record
+            sql = """
+                INSERT INTO Payment (payment_date, payment_amount, payment_status, paid_amount, remarks)
+                VALUES (CURRENT_DATE, %s, %s, %s, %s)
+            """
+            values = [total_payment, payment_status, payment_amount, remarks]
+            modifyDB(sql, values)
 
-        col2 = ["Total_Payment"]
-        df2 = getDataFromDB(sql2, values2, col2)
+            # Fetch the latest payment ID
+            sql_find = """SELECT MAX(payment.payment_id) FROM payment"""
+            df_find = getDataFromDB(sql_find, [], ['Max Payment ID'])
+            result_id = int(df_find.iloc[0, 0])
 
-        total_payment = int(df2.iloc[0]['Total_Payment'])
-        
-        if delete:
-            sql ="""UPDATE Payment
-                 SET payment_delete = true
-                 WHERE payment_id = %s"""
-            val = [payment_id]
-            modifyDB(sql,val)
-        else:
-            sql = """UPDATE Payment
+            # Update the appointment with the new payment ID
+            sql_update = """
+                UPDATE Appointment
+                SET payment_id = %s
+                WHERE appointment_id = %s
+            """
+            modifyDB(sql_update, [result_id, appointment_id])
+
+            return 'success', 'Transaction Submitted Successfully!', True
+
+        elif create_mode == 'edit':
+            # Fetch total payment for validation
+            sql_total = """
+                SELECT SUM(appointment_treatment.quantity * treatment.treatment_price) AS total_price
+                FROM appointment_treatment
+                JOIN appointment ON appointment_treatment.appointment_id = appointment.appointment_id
+                JOIN treatment ON appointment_treatment.treatment_id = treatment.treatment_id
+                WHERE appointment.payment_id = %s
+                ;
+            """
+            df_total = getDataFromDB(sql_total, [transaction_id], ["Total_Payment"])
+            total_payment = int(df_total.iloc[0]['Total_Payment'])
+
+            if delete:
+                # Mark the payment as deleted
+                sql_delete = """
+                    UPDATE Payment
+                    SET payment_delete = TRUE
+                    WHERE payment_id = %s
+                """
+                modifyDB(sql_delete, [transaction_id])
+                return 'warning', 'Transaction Deleted', True
+            else:
+                # Update the payment record
+                sql_update = """
+                    UPDATE Payment
                     SET payment_amount = %s,
                         payment_status = %s,
                         paid_amount = %s,
                         remarks = %s
-                    WHERE payment_id = %s"""
-            values = [total_payment,payment_status,payment_amount,remarks,payment_id]
-            modifyDB(sql,values)
-    else:
-        raise PreventUpdate
-    try:
-        return'success', 'Transaction Submitted successfully!', True
+                    WHERE payment_id = %s
+                """
+                modifyDB(sql_update, [total_payment, payment_status, payment_amount, remarks, transaction_id])
+                return 'success', 'Transaction Submitted Successfully!', True
     except Exception as e:
-        return 'danger', f'Error Occurred: {e}', True
+        return 'danger', f'Error occurred: {e}', True
 
 #this prepopulates during edit mode
 

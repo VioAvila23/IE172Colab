@@ -178,25 +178,46 @@ def update_header(appointment_id):
     else:
         return "Reschedule Appointment"
 
-
-# Display Patient Names in Appointment Dropdown
 @app.callback(
     Output('patient_name_dropdown_appointment', 'options'),
-    Input('patient_name_dropdown_appointment', 'id')
+    [Input('appointmentprofile_id', 'data')],
 )
-def load_patient_names_appointment(_):
-    # SQL query to fetch patient names
-    sql = """
+def load_patient_names_appointment(appointmentprofile_id):
+    # SQL query to fetch active patient names
+    sql_active_patients = """
         SELECT patient_id, CONCAT(patient_last_m, ', ', patient_first_m) AS patient_name
         FROM patient
+        WHERE patient_delete = FALSE
     """
-    # Fetch data from DB with empty values and columns lists
-    df = getDataFromDB(sql, [], ["patient_id", "patient_name"])
+
+    # Fetch active patients
+    df_active = getDataFromDB(sql_active_patients, [], ["patient_id", "patient_name"])
     
-    # Convert the fetched data into options for the dropdown
-   
-    
-    return [{'label': row['patient_name'], 'value': row['patient_id']} for _, row in df.iterrows()]
+    options = [{'label': row['patient_name'], 'value': row['patient_id']} for _, row in df_active.iterrows()]
+
+    # If in edit mode and there is a specific appointment ID, fetch the associated deleted patient (if applicable)
+    if appointmentprofile_id > 0:
+        sql_deleted_patient = """
+            SELECT patient_id, CONCAT(patient_last_m, ', ', patient_first_m) AS patient_name
+            FROM patient
+            WHERE patient_id = (
+                SELECT patient_id 
+                FROM Appointment 
+                WHERE appointment_id = %s
+            )
+        """
+        df_deleted = getDataFromDB(sql_deleted_patient, [appointmentprofile_id], ["patient_id", "patient_name"])
+        
+        # Add the deleted patient to the dropdown options (if it exists and is not already present)
+        if not df_deleted.empty:
+            deleted_patient_option = {
+                'label': df_deleted['patient_name'][0], 
+                'value': df_deleted['patient_id'][0]
+            }
+            if deleted_patient_option not in options:
+                options.append(deleted_patient_option)
+
+    return options
 
 #Hides Mark as Delete During Add Mode
 @app.callback(
@@ -225,7 +246,6 @@ def appointment_result_load(pathname,urlsearch):
 
     else:
          raise PreventUpdate
-#Adds Data
 @app.callback(
     [Output('appointmentsubmit_alert', 'color'),
      Output('appointmentsubmit_alert', 'children'),
@@ -238,58 +258,80 @@ def appointment_result_load(pathname,urlsearch):
      State('appointment_status', 'value'),
      State('url', 'search'),
      State('appointmentprofile_id', 'data'),
-     State('appointment_profile_delete','value')]
+     State('appointment_profile_delete', 'value')]
 )
-
 def submit_appointment_form(n_clicks, patient_name, appointment_date, appointment_time, appointment_reason, 
-                            appointment_status, urlsearch, appointmentprofile_id,delete):
+                            appointment_status, urlsearch, appointmentprofile_id, delete):
 
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
         raise PreventUpdate
-    
+
+    # Determine the mode: Add or Edit
     parsed = urlparse(urlsearch)
     create_mode = parse_qs(parsed.query).get('mode', [''])[0]
 
-    if not all([patient_name, appointment_date, appointment_time, appointment_reason, appointment_status]):
+    # Validate required fields for add/edit mode (not for delete)
+    if not delete and not all([patient_name, appointment_date, appointment_time, appointment_reason, appointment_status]):
         return 'danger', 'Please fill in all required fields.', True
-    
+
+    # Check for existing appointment conflicts (ignoring patient_id)
+    if not delete:  # Skip conflict check if delete is selected
+        conflict_sql = """
+            SELECT COUNT(*) 
+            FROM Appointment
+            WHERE appointment_date = %s 
+              AND appointment_time = %s
+              AND NOT appointment_delete
+              AND appointment_status != 'Completed'
+        """
+        conflict_values = [appointment_date, appointment_time]
+
+        if create_mode == 'edit':
+            conflict_sql += " AND appointment_id <> %s"  # Exclude the current appointment in edit mode
+            conflict_values.append(appointmentprofile_id)
+
+        # Query the database to check for conflicts
+        conflict_result = getDataFromDB(conflict_sql, conflict_values, ['count'])
+
+        if conflict_result['count'][0] > 0:
+            return 'danger', 'The selected schedule is already taken. Please choose another date or time.', True
+
     # SQL to insert or update the database
     if create_mode == 'add':
-        # Insert a new record into the appointment table
-        sql = """INSERT INTO appointment (patient_id, appointment_date, appointment_time, appointment_reason, appointment_status)
-                 VALUES (%s, %s, %s, %s, %s) RETURNING appointment_id;"""
+        # Insert a new record into the Appointment table
+        sql = """INSERT INTO Appointment (patient_id, appointment_date, appointment_time, appointment_reason, appointment_status)
+                 VALUES (%s, %s, %s, %s, %s)"""
         values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status]
-
-    
 
     elif create_mode == 'edit':
         if delete:
+            # Mark the appointment as deleted
             sql = """UPDATE Appointment
-                    SET appointment_delete = TRUE
-                    WHERE appointment_id = %s
-                    """
+                     SET appointment_delete = TRUE
+                     WHERE appointment_id = %s"""
             values = [appointmentprofile_id]
-
         else:
-
-            sql = """UPDATE appointment
-                    SET patient_id = %s,
-                        appointment_date = %s,
-                        appointment_time = %s,
-                        appointment_reason = %s,
-                        appointment_status = %s
-                    WHERE appointment_id = %s;"""
+            # Update the existing record
+            sql = """UPDATE Appointment
+                     SET patient_id = %s,
+                         appointment_date = %s,
+                         appointment_time = %s,
+                         appointment_reason = %s,
+                         appointment_status = %s
+                     WHERE appointment_id = %s"""
             values = [patient_name, appointment_date, appointment_time, appointment_reason, appointment_status, appointmentprofile_id]
-    
-    else: 
+    else:
         raise PreventUpdate
-    
+
+    # Execute database modification
     try:
         modifyDB(sql, values)
-        return 'success', 'Appointment Submitted successfully!', True
+        if delete:
+            return 'warning', 'Appointment Deleted', True
+        return 'success', 'Appointment Submitted Successfully!', True
     except Exception as e:
-        return 'danger', f'Error Occurred: {e}', True
+        return 'danger', f'Error occurred: {e}', True
 
 
 

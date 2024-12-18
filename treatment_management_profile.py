@@ -162,19 +162,22 @@ def update_treatment_header(urlsearch):
         return "Edit Treatment"
     
 @app.callback(
-    [Output('treatment_submit_alert', 'color'),
-     Output('treatment_submit_alert', 'children'),
-     Output('treatment_submit_alert', 'is_open')],
+    [
+        Output('treatment_submit_alert', 'color'),
+        Output('treatment_submit_alert', 'children'),
+        Output('treatment_submit_alert', 'is_open')
+    ],
     [Input('treatmentsubmit_button', 'n_clicks')],
-    [State('treatment_name', 'value'),
-     State('treatment_description', 'value'),
-     State('treatment_price', 'value'),
-     State('url', 'search'),
-     State('treatmentprofile_id', 'data'),
-     State('treatment_profile_deletediv', 'value')]
+    [
+        State('treatment_name', 'value'),
+        State('treatment_description', 'value'),
+        State('treatment_price', 'value'),
+        State('url', 'search'),
+        State('treatmentprofile_id', 'data'),
+        State('treatment_profile_deletediv', 'value')
+    ]
 )
-def submit_treatment_form(n_clicks, treatment_name, treatment_description, treatment_price, urlsearch, treatmentprofile_id,delete):
-    
+def submit_treatment_form(n_clicks, treatment_name, treatment_description, treatment_price, urlsearch, treatmentprofile_id, delete):
     ctx = dash.callback_context
     if not ctx.triggered or not n_clicks:
         raise PreventUpdate
@@ -183,16 +186,17 @@ def submit_treatment_form(n_clicks, treatment_name, treatment_description, treat
     create_mode = parse_qs(parsed.query).get('mode', [''])[0]
 
     # Check for missing values in the required fields
-    if not all([treatment_name, treatment_description, treatment_price]):
+    if not all([treatment_name, treatment_description, treatment_price]) and not delete:
         return 'danger', 'Please fill in all required fields.', True
 
     # SQL to insert or update the database
     if create_mode == 'add':
         sql = """INSERT INTO Treatment (treatment_m, treatment_description, treatment_price)
                  VALUES (%s, %s, %s);"""
-        
         values = [treatment_name, treatment_description, treatment_price]
-    
+        alert_color = 'success'
+        alert_message = 'Treatment Submitted successfully!'
+
     elif create_mode == 'edit':
         if delete:
             # Mark as deleted
@@ -200,23 +204,26 @@ def submit_treatment_form(n_clicks, treatment_name, treatment_description, treat
                      SET treatment_delete = true
                      WHERE treatment_id = %s;"""
             values = [treatmentprofile_id]
+            alert_color = 'warning'
+            alert_message = 'Treatment Deleted'
         else:
-
             sql = """UPDATE Treatment
                     SET treatment_m = %s,
                         treatment_description = %s,
                         treatment_price = %s
                     WHERE treatment_id = %s;"""
-            
             values = [treatment_name, treatment_description, treatment_price, treatmentprofile_id]
+            alert_color = 'success'
+            alert_message = 'Treatment Submitted successfully!'
     else:
         raise PreventUpdate
 
     try:
         modifyDB(sql, values)
-        return 'success', 'Treatment Submitted successfully!', True
+        return alert_color, alert_message, True
     except Exception as et:
         return 'danger', f'Error Occurred: {et}', True
+
 
 
 

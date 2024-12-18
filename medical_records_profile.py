@@ -156,24 +156,22 @@ def display_medical_records(medicalprofile_id):
     mr.medical_condition,
     mr.medical_diagnosis,
     mr.medical_prescription
-        FROM 
-            Patient p
-            INNER JOIN 
-            Appointment a ON p.patient_id = a.patient_id
-        INNER JOIN 
-            Appointment_treatment at ON a.appointment_id = at.appointment_id
-        INNER JOIN 
-            Treatment t ON at.treatment_id = t.treatment_id
-        INNER JOIN 
-            Medical_result mr ON a.medical_result_id = mr.medical_result_id
-            WHERE 
-            p.patient_id = %s 
-            AND treatment_delete = false
-            AND mr.medical_result_delete = false
-            GROUP BY 
-            mr.medical_result_id, a.appointment_date, mr.medical_condition, mr.medical_diagnosis, mr.medical_prescription
-        ORDER BY 
+FROM 
+    Patient p
+    INNER JOIN Appointment a ON p.patient_id = a.patient_id
+    INNER JOIN Appointment_treatment at ON a.appointment_id = at.appointment_id
+    INNER JOIN Treatment t ON at.treatment_id = t.treatment_id
+    INNER JOIN Medical_result mr ON a.medical_result_id = mr.medical_result_id
+WHERE 
+    p.patient_id = %s
+    AND (t.treatment_delete = TRUE OR t.treatment_delete = FALSE)
+    AND t.treatment_id <> 6
+    AND mr.medical_result_delete = FALSE
+GROUP BY 
+    mr.medical_result_id, a.appointment_date, mr.medical_condition, mr.medical_diagnosis, mr.medical_prescription
+ORDER BY 
     a.appointment_date DESC;
+
 
     """
     val = [medicalprofile_id]

@@ -6,8 +6,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from app import app
-from apps import dbconnect as db
-
+import dbconnect as db
 layout = html.Div(
     style={
         'display': 'flex',
@@ -116,6 +115,23 @@ layout = html.Div(
                         'backgroundColor': '#194D62',
                         'border': 'none',
                         'color': 'white',
+                        'marginBottom': '15px',
+                    },
+                ),
+
+                # Back to Login Button
+                dbc.Button(
+                    "Back to Login",
+                    href='/login',
+                    color="secondary",
+                    style={
+                        'width': '100%',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'fontWeight': 'bold',
+                        'backgroundColor': '#f8f9fa',
+                        'color': '#194D62',
+                        'border': '1px solid #194D62',
                     },
                 ),
                 
@@ -147,6 +163,7 @@ layout = html.Div(
         ),
     ]
 )
+
 
 # Disable the reset button if passwords do not match
 @app.callback(
@@ -201,4 +218,3 @@ def reset_password(n_clicks, username, new_password):
         raise PreventUpdate
 
     return [openalert, openmodal]
-
