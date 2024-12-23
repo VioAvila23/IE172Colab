@@ -226,7 +226,7 @@ layout = html.Div(
                         dbc.Col(
                             dcc.Dropdown(
                                 id='treatment_done_5',
-                                placeholder='Select Treatment 1',
+                                placeholder='Select Treatment 5',
                                 className="form-control",
                                 style={"borderRadius": "20px", "backgroundColor": "#f0f2f5", "fontSize": "18px"}
                             ),

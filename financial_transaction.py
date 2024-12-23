@@ -12,7 +12,7 @@ layout = dbc.Container([
             dbc.Col(
                 [
                     html.H2(
-                        'Financial Transaction Management', 
+                        'Payment Management', 
                         style={"marginBottom": "0px"}  # Reduce space below heading
                     ),
                 ],
